@@ -1,0 +1,26 @@
+<html>
+    <head>
+    </head>
+    <body>
+	<p>
+	    Wellcome here!
+	</p>
+	    Your repo list:<br />
+	    <table>
+	    <tr>
+	    <td>full_name</td>
+	    <td>clone_url</td>
+	    </tr>
+	    {% for repo in repolist %}
+	    <tr>
+		<td>
+		    {{repo.name}}
+		</td>
+		<td>
+		    {{repo.clone_url}}
+		</td>
+	    </tr>
+	    {% endfor %}
+	    </table>
+    </body>
+</html>
