@@ -36,6 +36,11 @@ def oauth_callback(request):
     access_token = r.json()['access_token']
 
     params = {'access_token': access_token, 'type': 'owner', 'sort': 'updated'}
-    r = requests.get('https://api.github.com/user/repos', params=params, headers=headers)
-    content = {'repolist': r.json()}
+    # List repositories for the authenticated user.
+    repos = requests.get('https://api.github.com/user/repos', params=params, headers=headers)
+
+    # List public and private organizations for the authenticated user.
+    orgs = requests.get('https://api.github.com/user/orgs', params=params, headers=headers)
+
+    content = {'repos': repos.json(), 'orgs': orgs.json()}
     return render(request, 'core/index.html', content)
