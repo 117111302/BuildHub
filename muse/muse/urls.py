@@ -15,4 +15,5 @@ urlpatterns += patterns(views,
     url(r'^$', views.login),
     url(r'^index', views.index),
     url(r'^oauth_callback/', views.oauth_callback),
+    url(r'^payload/', views.payload),
 )

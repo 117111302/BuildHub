@@ -3,6 +3,8 @@ import requests
 
 from django.shortcuts import render
 from django.conf import settings
+from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.csrf import csrf_exempt
 
 CLIENT_ID = settings.CLIENT_ID
 CLIENT_SECRET = settings.CLIENT_SECRET
@@ -43,4 +45,11 @@ def oauth_callback(request):
     orgs = requests.get('https://api.github.com/user/orgs', params=params, headers=headers)
 
     content = {'repos': repos.json(), 'orgs': orgs.json()}
+    return render(request, 'core/index.html', content)
+
+@csrf_exempt
+def payload(request):
+    """github payloads
+    """
+    content = {}
     return render(request, 'core/index.html', content)
