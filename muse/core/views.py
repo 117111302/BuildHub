@@ -1,13 +1,18 @@
 import json
 import requests
+import urlparse
 
 from django.shortcuts import render
 from django.conf import settings
+from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.csrf import csrf_exempt
 
+from core.models import Webhook
+
 CLIENT_ID = settings.CLIENT_ID
 CLIENT_SECRET = settings.CLIENT_SECRET
+API_ROOT = 'https://api.github.com/'
 
 
 def login(request):
@@ -37,6 +42,7 @@ def oauth_callback(request):
     # if error:
     access_token = r.json()['access_token']
 
+    request.session['access_token'] = access_token
     params = {'access_token': access_token, 'type': 'owner', 'sort': 'updated'}
     # List repositories for the authenticated user.
     repos = requests.get('https://api.github.com/user/repos', params=params, headers=headers)
@@ -53,3 +59,18 @@ def payload(request):
     """
     content = {}
     return render(request, 'core/index.html', content)
+
+
+def create_hook(request):
+    """create webhook
+    """
+    params = dict(name=request.GET['repo'],
+		event=['push', 'pull_request'],
+		active=True,
+		config=dict(url='http://4fea4883.ngrok.com/payload/',
+		    content_type='json',
+		    insecure_ssl='1')
+		)
+    uri = '/repos/:owner/:repo/hooks'
+    hook = requests.post(urlparse.urljoin(API_ROOT, uri), params=params, headers={'Accept': 'application/json'})
+    return HttpResponse('Success!')

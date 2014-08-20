@@ -14,10 +14,13 @@
 	    {% for repo in repos %}
 	    <tr>
 		<td>
-		    {{repo.name}}
+		    <a href="/repo?repo={{repo.name}}">{{repo.name}}</a>
 		</td>
 		<td>
 		    {{repo.clone_url}}
+		</td>
+		<td>
+		    <a href="/create_hook?repo={{repo.name}}">Enable</a>
 		</td>
 	    </tr>
 	    {% endfor %}
