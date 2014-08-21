@@ -13,9 +13,9 @@ urlpatterns = patterns('',
 
 urlpatterns += patterns(views,
     url(r'^$', views.login),
-    url(r'^index', views.index),
+#    url(r'^(\w+)/', views.index),
     url(r'^oauth_callback/', views.oauth_callback),
     url(r'^payload/', views.payload),
     url(r'^create_hook/', views.create_hook),
-    url(r'^repo/', views.repo),
+    url(r'^repo/(\w+)/', views.repo),
 )

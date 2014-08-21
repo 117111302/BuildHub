@@ -5,6 +5,7 @@ import urlparse
 from django.shortcuts import render
 from django.conf import settings
 from django.http import HttpResponse
+from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.csrf import csrf_exempt
 from github import Github
@@ -23,13 +24,14 @@ def login(request):
     return render(request, 'core/login.html', content)
 
 
-def index(request):
+def index(request, user):
     """index view
     """
+    print "index==================>", user
     return render(request, 'core/index.html')
 
 
-def oauth_callback(request):
+def oauth_callback(request, user=None):
     """oauth callback
     """
     # get temporary GitHub code...
@@ -61,11 +63,16 @@ def oauth_callback(request):
 def payload(request):
     """github payloads
     """
+    print request.META.get('HTTP_X_GITHUB_EVENT')
     payload = request.body
+    if not payload:
+	return HttpResponse('OK')
     data = json.loads(payload)
     print '-'*80
     print json.dumps(data, indent=2)
     print '-'*80
+    if not data.get('repository'):
+	return HttpResponse('OK')
     repo = data['repository']['name']
     webhook = Payload.objects.create(repo=repo, payload=payload)
     return HttpResponse(unicode(webhook))
@@ -78,21 +85,23 @@ def create_hook(request):
     data = dict(name='web',
 		events=['push', 'pull_request'],
 		active=True,
-		config=dict(url='http://522bbc09.ngrok.com/payload',
+		config=dict(url='http://1223446e.ngrok.com/payload/',
 		    content_type='json')
 		)
     uri = '/repos/117111302/%s/hooks' % (request.GET['repo'])
     hook = requests.post(urlparse.urljoin(API_ROOT, uri), data=json.dumps(data), params={'access_token': access_token})
     #client = Github(access_token)
     #repo = client.get_user().get_repo(request.GET['repo'])
-    #repo.create_hook(name='web', config=data, events=["push"], active=True)
+    #try:
+#	repo.create_hook(name='web', config=dict(url='http://1223446e.ngrok.com/payload/', content_type='json'), events=["push"], active=True)
+    #except Exception as e:
+#	return HttpResponse(e)
     return HttpResponse(hook.text)
 
 
-def repo(request):
+def repo(request, repo):
     """webhook page
     """
-    repo = request.GET['repo']
     hooks = Payload.objects.filter(repo=repo)
     print 'hooks====================>', hooks
     for h in hooks:
