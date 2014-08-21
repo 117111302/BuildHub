@@ -1,0 +1,20 @@
+<table border=1>
+	<tr>
+		<td>
+			repo
+		</td>
+		<td>
+			payload
+		</td>
+	</tr>
+	{% for hook in hooks %}
+		<tr>
+			<td>
+				{{hook.repo}}
+			</td>
+			<td>
+				<pre>{{hook.pretty}}</pre>
+			</td>
+		</tr>
+	{% endfor %}
+</table>

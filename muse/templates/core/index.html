@@ -6,10 +6,11 @@
 	    Wellcome muse!
 	</p>
 	    Your repo list:<br />
-	    <table>
+	    <table border="1" style="width:700px">
 	    <tr>
 	    <td>full_name</td>
-	    <td>clone_url</td>
+	    <td>url</td>
+	    <td>webhook</td>
 	    </tr>
 	    {% for repo in repos %}
 	    <tr>
@@ -17,7 +18,7 @@
 		    <a href="/repo?repo={{repo.name}}">{{repo.name}}</a>
 		</td>
 		<td>
-		    {{repo.clone_url}}
+		    {{repo.html_url}}
 		</td>
 		<td>
 		    <a href="/create_hook?repo={{repo.name}}">Enable</a>

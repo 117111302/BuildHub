@@ -17,4 +17,5 @@ urlpatterns += patterns(views,
     url(r'^oauth_callback/', views.oauth_callback),
     url(r'^payload/', views.payload),
     url(r'^create_hook/', views.create_hook),
+    url(r'^repo/', views.repo),
 )
