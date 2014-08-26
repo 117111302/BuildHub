@@ -14,7 +14,8 @@ from core.models import Payload
 
 CLIENT_ID = settings.CLIENT_ID
 CLIENT_SECRET = settings.CLIENT_SECRET
-API_ROOT = 'https://api.github.com/'
+API_ROOT = settings.GITHUB_API
+SERVER = settings.BACKEND_SERVER
 
 
 def login(request):
@@ -82,13 +83,17 @@ def create_hook(request):
     """create webhook
     """
     access_token=request.session['access_token']
+    uri = '/user'
+    user_info = requests.get(urlparse.urljoin(API_ROOT, uri), params={'access_token': access_token})
+    print user_info.json()
+    user_name = user_info.json()['login']
     data = dict(name='web',
 		events=['push', 'pull_request'],
 		active=True,
-		config=dict(url='http://1223446e.ngrok.com/payload/',
+		config=dict(url=urlparse.urljoin(SERVER, '/payload/'),
 		    content_type='json')
 		)
-    uri = '/repos/117111302/%s/hooks' % (request.GET['repo'])
+    uri = '/repos/%s/%s/hooks' % (user_name, request.GET['repo'])
     hook = requests.post(urlparse.urljoin(API_ROOT, uri), data=json.dumps(data), params={'access_token': access_token})
     #client = Github(access_token)
     #repo = client.get_user().get_repo(request.GET['repo'])

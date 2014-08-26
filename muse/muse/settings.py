@@ -27,6 +27,8 @@ TEMPLATE_DEBUG = True
 ALLOWED_HOSTS = []
 
 #GitHub Client
+GITHUB_API = 'https://api.github.com/'
+BACKEND_SERVER = 'http://2ebc1a51.ngrok.com'
 CLIENT_ID = 'c24112678dd3df9d297a'
 CLIENT_SECRET = '91173ae4a4274d2a5602d188dcc0f1cc9078be04'
 
