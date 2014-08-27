@@ -9,6 +9,7 @@ from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.csrf import csrf_exempt
 from github import Github
+from lib import jenkins
 
 from core.models import Payload
 
@@ -64,6 +65,8 @@ def oauth_callback(request, user=None):
 def payload(request):
     """github payloads
     """
+    clone_url = ''
+    event = request.META.get('HTTP_X_GITHUB_EVENT')
     print request.META.get('HTTP_X_GITHUB_EVENT')
     payload = request.body
     if not payload:
@@ -76,6 +79,16 @@ def payload(request):
 	return HttpResponse('OK')
     repo = data['repository']['name']
     webhook = Payload.objects.create(repo=repo, payload=payload)
+    print '-'*80
+    J = jenkins.get_server_instance()
+#    if event == 'push':
+#        clone_url = data['repository']['clone_url']
+#    if event == 'pull_request':
+#        clone_url = data['head']['repo']['clone_url']
+    r = J[settings.JENKINS_JOB].invoke(build_params={'data': payload})
+    print r.get_build().get_console()
+    print '-'*80
+    return HttpResponse(unicode(r.get_build().get_console()))
     return HttpResponse(unicode(webhook))
 
 
@@ -112,3 +125,10 @@ def repo(request, repo):
     for h in hooks:
         h.pretty = json.dumps(json.loads(h.payload), indent=2)
     return render(request, 'core/repo.html', locals())
+
+
+def badge(request, branch, project):
+    #get status from db by project, branch
+    status, color = 'failed', 'red'
+    url = 'http://img.shields.io/badge/build-%s-%s.svg' % (status, color)
+    return HttpResponseRedirect(url)

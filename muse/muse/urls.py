@@ -18,4 +18,5 @@ urlpatterns += patterns(views,
     url(r'^payload/', views.payload),
     url(r'^create_hook/', views.create_hook),
     url(r'^repo/(\w+)/', views.repo),
+    url(r'^badge/(\w+)/(\w+)/$', views.badge),
 )
