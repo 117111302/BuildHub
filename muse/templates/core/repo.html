@@ -10,7 +10,7 @@
 	{% for hook in hooks %}
 		<tr>
 			<td>
-				{{hook.repo}}
+				<a href="/{{hook.repo}}/builds/{{hook.build_id}}/">{{hook.repo}}</a>
 			</td>
 			<td>
 				<pre>{{hook.pretty}}</pre>

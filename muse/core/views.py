@@ -12,6 +12,7 @@ from github import Github
 from lib import jenkins
 
 from core.models import Payload
+from core.models import Badge
 
 CLIENT_ID = settings.CLIENT_ID
 CLIENT_SECRET = settings.CLIENT_SECRET
@@ -78,7 +79,6 @@ def payload(request):
     if not data.get('repository'):
 	return HttpResponse('OK')
     repo = data['repository']['name']
-    webhook = Payload.objects.create(repo=repo, payload=payload)
     print '-'*80
     J = jenkins.get_server_instance()
 #    if event == 'push':
@@ -86,9 +86,10 @@ def payload(request):
 #    if event == 'pull_request':
 #        clone_url = data['head']['repo']['clone_url']
     r = J[settings.JENKINS_JOB].invoke(build_params={'data': payload})
+    build_id = r.get_build_number()
+    webhook = Payload.objects.create(repo=repo, payload=payload, build_id=build_id)
     print r.get_build().get_console()
     print '-'*80
-    return HttpResponse(unicode(r.get_build().get_console()))
     return HttpResponse(unicode(webhook))
 
 
@@ -121,14 +122,68 @@ def repo(request, repo):
     """webhook page
     """
     hooks = Payload.objects.filter(repo=repo)
-    print 'hooks====================>', hooks
     for h in hooks:
         h.pretty = json.dumps(json.loads(h.payload), indent=2)
+
+    J = jenkins.get_server_instance()
+#    if event == 'push':
+#        clone_url = data['repository']['clone_url']
+#    if event == 'pull_request':
+#        clone_url = data['head']['repo']['clone_url']
+    r = J[settings.JENKINS_JOB].get_last_build().get_console()
+    print r
+ 
     return render(request, 'core/repo.html', locals())
 
 
-def badge(request, branch, project):
+def badge(request, branch, repo):
     #get status from db by project, branch
-    status, color = 'failed', 'red'
-    url = 'http://img.shields.io/badge/build-%s-%s.svg' % (status, color)
+    badge = Badge.objects.get(repo=repo, branch=branch)
+    status = {'FAILURE': ('failing', 'red'), 'SUCCESS': ('success', 'brightgreen')}
+    url = 'http://img.shields.io/badge/build-%s-%s.svg' % status[badge.status]
     return HttpResponseRedirect(url)
+
+
+def builds(request, repo, build_id):
+    """get build console
+    """
+    J = jenkins.get_server_instance()
+    build = J[settings.JENKINS_JOB].get_build(int(build_id))
+
+    print 'running :', build.is_running()
+    from django.http import StreamingHttpResponse
+    from django.template import loader, Context
+    t = loader.get_template('core/build.html')
+    console = realtime_console(t,build)
+    print console
+    
+    t.render(Context({'console': console}))
+
+    return StreamingHttpResponse(console)
+    return render(request, 'core/build.html', locals())
+
+
+def realtime_console(t,build):
+    from django.template import loader, Context
+    buffer = '*' * 1024
+
+#    yield t.render(Context({'console': buffer}))
+
+    while build.is_running():
+        console = build.get_console()
+#        yield '<p>x = {}</p>\n'.format(console)
+        yield console
+
+
+from django.http import StreamingHttpResponse
+from django.template import Context, Template
+t = Template('{{ mydata }} <br />\n')
+
+def gen_rendered():
+    for x in range(1,11):
+        c = Context({'mydata': x})
+        yield t.render(c)
+
+def stream_view(request):
+    response = StreamingHttpResponse(gen_rendered())
+    return response

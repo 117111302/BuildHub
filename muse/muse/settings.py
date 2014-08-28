@@ -33,10 +33,14 @@ CLIENT_ID = 'c24112678dd3df9d297a'
 CLIENT_SECRET = '91173ae4a4274d2a5602d188dcc0f1cc9078be04'
 
 # Jenkins
-JENKINS_URL = 'http://tzs.bj.intel.com/ci/'
-JENKINS_USER = 'junchunx'
-JENKINS_PASS = 'tizen2.0'
-JENKINS_JOB = 'demo'
+#JENKINS_URL = 'http://tzs.bj.intel.com/ci/'
+#JENKINS_USER = 'junchunx'
+#JENKINS_PASS = 'tizen2.0'
+#JENKINS_JOB = 'demo'
+JENKINS_URL = 'http://tzjenkins-test.fi.intel.com/robot'
+JENKINS_USER = 'root'
+JENKINS_PASS = 'namtriv7'
+JENKINS_JOB = 'muse_test'
 
 # Application definition
 
