@@ -90,6 +90,11 @@ def payload(request):
     webhook = Payload.objects.create(repo=repo, payload=payload, build_id=build_id)
     print r.get_build().get_console()
     print '-'*80
+    while r.get_build().is_running():
+	status = r.get_build().get_status()
+    branch = data['repository']['default_branch']
+    badge = Badge.objects.create(repo=repo, branch=branch, status=status)
+    print "badge", badge.status
     return HttpResponse(unicode(webhook))
 
 
