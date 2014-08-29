@@ -5,6 +5,8 @@ import urlparse
 from django.shortcuts import render
 from django.conf import settings
 from django.http import HttpResponse
+from django.http import StreamingHttpResponse
+from django.template import loader, Context, Template
 from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.csrf import csrf_exempt
@@ -78,7 +80,7 @@ def payload(request):
     if not data.get('repository'):
 	return HttpResponse('OK')
     repo = data['repository']['name']
-    print '-'*80
+    print 'Jenkins job' + '-'*80
     J = jenkins.get_server_instance()
 #    if event == 'push':
 #        clone_url = data['repository']['clone_url']
@@ -86,15 +88,16 @@ def payload(request):
 #        clone_url = data['head']['repo']['clone_url']
     r = J[settings.JENKINS_JOB].invoke(build_params={'data': payload})
     build_id = r.get_build_number()
-    webhook = Payload.objects.create(repo=repo, payload=payload, build_id=build_id)
-    print r.get_build().get_console()
-    print '-'*80
-    while r.get_build().is_running():
-	status = r.get_build().get_status()
+    print 'build_id: ', build_id
     branch = data['repository']['default_branch']
-    badge = Badge.objects.create(repo=repo, branch=branch, status=status)
-    print "badge", badge.status
-    return HttpResponse(unicode(webhook))
+    Payload.objects.create(repo=repo, payload=payload, build_id=build_id, branch=branch)
+    print '-'*80
+    # FIXME GitHub will time out, can we use subprocess to get build status, and set status to badge?
+    #while r.get_build().is_running():
+    #    print 'job status: ', r.get_build().is_running()
+    #    status = r.get_build().get_status()
+    Badge.objects.get_or_create(repo=repo, branch=branch)
+    return HttpResponse('OK')
 
 
 def create_hook(request):
@@ -143,51 +146,73 @@ def repo(request, repo):
 def badge(request, branch, repo):
     #get status from db by project, branch
     badge = Badge.objects.get(repo=repo, branch=branch)
-    status = {'FAILURE': ('failing', 'red'), 'SUCCESS': ('success', 'brightgreen')}
-    url = 'http://img.shields.io/badge/build-%s-%s.svg' % status[badge.status]
+    if not badge:
+        status = 'UNKNOW'
+    else:
+        status = badge.status
+    status = {'FAILURE': ('failing', 'red'), 'SUCCESS': ('success', 'brightgreen'), 'UNKNOW': ('unkonw', 'lightgrey')}
+    url = 'http://img.shields.io/badge/build-%s-%s.svg' % status[status]
     return HttpResponseRedirect(url)
 
 
 def builds(request, repo, build_id):
     """get build console
     """
+    status = {}
     J = jenkins.get_server_instance()
     build = J[settings.JENKINS_JOB].get_build(int(build_id))
 
     print 'running :', build.is_running()
-    from django.http import StreamingHttpResponse
-    from django.template import loader, Context
     t = loader.get_template('core/build.html')
-    console = realtime_console(t,build)
-    print console
-    
-    t.render(Context({'console': console}))
 
+    console = realtime_console(t, build, status)
+
+    payload = Payload.objects.get(repo=repo, build_id=build_id)
+    badge = Badge.objects.get_or_create(repo=repo, branch=payload.branch)
+
+    badge.status = status['status']
+    badge.save()
+   
     return StreamingHttpResponse(console)
-    return render(request, 'core/build.html', locals())
 
 
-def realtime_console(t,build):
-    from django.template import loader, Context
-    buffer = '*' * 1024
+def realtime_console(t, build, res):
+    s = ''
 
-#    yield t.render(Context({'console': buffer}))
+    # get build console when job is finished
+    if not build.is_running():
+        status = build.get_status()
+        yield t.render(Context({'console': build.get_console()}))
 
-    while build.is_running():
+    building = build.is_running()
+    # get build console when job is running
+    while building:
+        building = build.is_running()
         console = build.get_console()
-#        yield '<p>x = {}</p>\n'.format(console)
-        yield console
+        status = build.get_status()
+        print '-'*80
+        print console
+        news = console.strip(s)
+        print 'news'+'-'*80
+        print news
+        s = console
+        if news:
+            yield t.render(Context({'console': news}))
+        print '-'*80
+
+    res['status'] = status
 
 
-from django.http import StreamingHttpResponse
-from django.template import Context, Template
-t = Template('{{ mydata }} <br />\n')
+t = loader.get_template('core/build.html')
 
 def gen_rendered():
+    yield t.render(Context({'console': "console********************************"}))
+    j = 0
     for x in range(1,11):
-        c = Context({'mydata': x})
-        yield t.render(c)
+        yield t.render(Context({'console': (x-j)}))
+        j = x
 
 def stream_view(request):
+
     response = StreamingHttpResponse(gen_rendered())
     return response
