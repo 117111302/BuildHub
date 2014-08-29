@@ -57,7 +57,6 @@ def oauth_callback(request, user=None):
     # List public and private organizations for the authenticated user.
     orgs = requests.get('https://api.github.com/user/orgs', params=params, headers=headers)
 
-    orgs = requests.get('https://api.github.com/repos/117111302/iris/hooks', params={'access_token': access_token})
     content = {'repos': repos.json(), 'orgs': orgs.json()}
     return render(request, 'core/index.html', content)
 
