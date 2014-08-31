@@ -10,6 +10,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.csrf import csrf_exempt
 from github import Github
 from lib import jenkins
+from furl import furl
 
 from core.models import Payload
 from core.models import Badge
@@ -18,6 +19,8 @@ CLIENT_ID = settings.CLIENT_ID
 CLIENT_SECRET = settings.CLIENT_SECRET
 API_ROOT = settings.GITHUB_API
 SERVER = settings.BACKEND_SERVER
+OAUTH_URL = settings.OAUTH_URL
+REDIRECT_URI = settings.REDIRECT_URI
 
 
 def login(request):
@@ -25,6 +28,16 @@ def login(request):
     """
     content = {'client_id': CLIENT_ID, 'scopes':'user:email,admin:repo_hook'}
     return render(request, 'core/login.html', content)
+
+
+def auth(request):
+    """auth with Github
+    """
+    auth_uri = urlparse.urljoin
+    params = {'client_id': CLIENT_ID, 'scope':'user:email,admin:repo_hook', 'redirect_uri': REDIRECT_URI}
+    f = furl(OAUTH_URL)
+    f.add(params)
+    return HttpResponseRedirect(f.url)
 
 
 def index(request, user):
@@ -44,21 +57,22 @@ def oauth_callback(request, user=None):
     data = {'client_id': CLIENT_ID, 'client_secret': CLIENT_SECRET, 'code': session_code}
     headers = {'Accept': 'application/json'}
     r = requests.post('https://github.com/login/oauth/access_token', data=data, headers=headers)
+    access_token = request.session.get('access_token')
+    print access_token
+
     # extract the token and granted scopes
     # if error:
-    access_token = request.session.get('access_token')
     if not access_token:
         access_token = r.json()['access_token']
         request.session['access_token'] = access_token
-    params = {'access_token': access_token, 'type': 'owner', 'sort': 'updated'}
+    client = Github(access_token)
+    user = client.get_user()
     # List repositories for the authenticated user.
-    repos = requests.get('https://api.github.com/user/repos', params=params, headers=headers)
-
+    repos = client.get_user().get_repos()
     # List public and private organizations for the authenticated user.
-    orgs = requests.get('https://api.github.com/user/orgs', params=params, headers=headers)
+    orgs = user.get_orgs()
 
-    orgs = requests.get('https://api.github.com/repos/117111302/iris/hooks', params={'access_token': access_token})
-    content = {'repos': repos.json(), 'orgs': orgs.json()}
+    content = {'repos': repos, 'orgs': orgs}
     return render(request, 'core/index.html', content)
 
 
@@ -102,24 +116,13 @@ def create_hook(request):
     """create webhook
     """
     access_token=request.session['access_token']
-    uri = '/user'
-    user_info = requests.get(urlparse.urljoin(API_ROOT, uri), params={'access_token': access_token})
-    print user_info.json()
-    user_name = user_info.json()['login']
-    data = dict(name='web',
-		events=['push', 'pull_request'],
-		active=True,
-		config=dict(url=urlparse.urljoin(SERVER, '/payload/'),
-		    content_type='json')
-		)
-    uri = '/repos/%s/%s/hooks' % (user_name, request.GET['repo'])
-    hook = requests.post(urlparse.urljoin(API_ROOT, uri), data=json.dumps(data), params={'access_token': access_token})
-    #client = Github(access_token)
-    #repo = client.get_user().get_repo(request.GET['repo'])
-    #try:
-#	repo.create_hook(name='web', config=dict(url='http://1223446e.ngrok.com/payload/', content_type='json'), events=["push"], active=True)
-    #except Exception as e:
-#	return HttpResponse(e)
+    client = Github(access_token)
+    repo = client.get_user().get_repo(request.GET['repo'])
+    try:
+	repo.create_hook(name='web', config=dict(url=urlparse.urljoin(SERVER, '/payload/'), content_type='json'), events=['push', 'pull_request'], active=True)
+	return HttpResponse('Create success!')
+    except Exception as e:
+	return HttpResponse(e)
     return HttpResponse(hook.text)
 
 
