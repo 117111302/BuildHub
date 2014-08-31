@@ -1,10 +1,9 @@
 muse
 ====
 
-muse ci
-
-.. image:: 'http://34be519a.ngrok.com/badge/muse/master'
+.. image:: http://34be519a.ngrok.com/badge/muse/master
     :target: http://34be519a.ngrok.com/auth
+    
 About this library
 -------------------
 
