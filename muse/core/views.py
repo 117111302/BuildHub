@@ -126,23 +126,18 @@ def create_hook(request):
 	return HttpResponse('Create success!')
     except Exception as e:
 	return HttpResponse(e)
-    return HttpResponse(hook.text)
 
 
 def repo(request, repo):
     """webhook page
     """
     hooks = Payload.objects.filter(repo=repo)
+    hooks.reverse()
     for h in hooks:
         h.pretty = json.dumps(json.loads(h.payload), indent=2)
 
     J = jenkins.get_server_instance()
-#    if event == 'push':
-#        clone_url = data['repository']['clone_url']
-#    if event == 'pull_request':
-#        clone_url = data['head']['repo']['clone_url']
     r = J[settings.JENKINS_JOB].get_last_build().get_console()
-    print r
  
     return render(request, 'core/repo.html', locals())
 

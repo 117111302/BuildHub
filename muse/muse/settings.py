@@ -29,21 +29,22 @@ ALLOWED_HOSTS = []
 
 # GitHub Client
 GITHUB_API = 'https://api.github.com/'
-BACKEND_SERVER = 'http://ff4b939.ngrok.com'
+BACKEND_SERVER = 'http://10d3e0a6.ngrok.com'
 CLIENT_ID = 'c24112678dd3df9d297a'
 CLIENT_SECRET = '91173ae4a4274d2a5602d188dcc0f1cc9078be04'
 OAUTH_URL = 'https://github.com/login/oauth/authorize'
 REDIRECT_URI = urlparse.urljoin(BACKEND_SERVER, '/oauth_callback')
 
 # Jenkins
-#JENKINS_URL = 'http://tzs.bj.intel.com/ci/'
-#JENKINS_USER = 'junchunx'
-#JENKINS_PASS = 'tizen2.0'
-#JENKINS_JOB = 'demo'
-JENKINS_URL = 'http://tzjenkins-test.fi.intel.com/robot'
-JENKINS_USER = 'root'
-JENKINS_PASS = 'namtriv7'
-JENKINS_JOB = 'muse_test'
+JENKINS_URL = 'http://tzs.bj.intel.com/ci/'
+JENKINS_USER = 'junchunx'
+JENKINS_PASS = 'tizen2.0'
+JENKINS_JOB = 'demo'
+
+#JENKINS_URL = 'http://tzjenkins-test.fi.intel.com/robot'
+#JENKINS_USER = 'root'
+#JENKINS_PASS = 'namtriv7'
+#JENKINS_JOB = 'muse_test'
 
 # Application definition
 
