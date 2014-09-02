@@ -10,6 +10,7 @@ from django.template import loader, Context, Template
 from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.csrf import csrf_exempt
+from django.core.exceptions import ObjectDoesNotExist
 from github import Github
 from lib import jenkins
 from furl import furl
@@ -23,6 +24,7 @@ API_ROOT = settings.GITHUB_API
 SERVER = settings.BACKEND_SERVER
 OAUTH_URL = settings.OAUTH_URL
 REDIRECT_URI = settings.REDIRECT_URI
+BADGE_URL = settings.BADGE_URL
 
 
 def login(request):
@@ -142,64 +144,69 @@ def repo(request, repo):
     return render(request, 'core/repo.html', locals())
 
 
-def badge(request, branch, repo):
+def badge(request, repo, branch):
     #get status from db by project, branch
-    badge = Badge.objects.get(repo=repo, branch=branch)
-    if not badge:
+    try:
+        badge = Badge.objects.get(repo=repo, branch=branch)
+    except ObjectDoesNotExist:
         status = 'UNKNOW'
     else:
         status = badge.status
-    status = {'FAILURE': ('failing', 'red'), 'SUCCESS': ('success', 'brightgreen'), 'UNKNOW': ('unkonw', 'lightgrey')}
-    url = 'http://img.shields.io/badge/build-%s-%s.svg' % status[status]
-    return HttpResponseRedirect(url)
+    ref = {'FAILURE': ('failing', 'red'), 'SUCCESS': ('success', 'brightgreen'), 'UNKNOW': ('unkonw', 'lightgrey')}
+    return HttpResponseRedirect(BADGE_URL % ref[status])
 
 
 def builds(request, repo, build_id):
     """get build console
     """
     status = {}
+
+    def realtime_console(t, build):
+        s = ''
+
+        building = build.is_running()
+        # get build console when job is finished
+        if not building:
+            status['status'] = build.get_status()
+            print 'res====:', status
+            yield t.render(Context({'console': build.get_console()}))
+
+        else:
+            # get build console when job is running
+            while building:
+                building = build.is_running()
+                console = build.get_console()
+                result = build.get_status()
+                print '-'*80
+                print console
+                news = console.strip(s)
+                print 'news'+'-'*80
+                print news
+                s = console
+                if news:
+                    yield t.render(Context({'console': news}))
+                print '-'*80
+
+            status['status'] = result
+
+
     J = jenkins.get_server_instance()
     build = J[settings.JENKINS_JOB].get_build(int(build_id))
 
     print 'running :', build.is_running()
     t = loader.get_template('core/build.html')
 
-    console = realtime_console(t, build, status)
+    console = realtime_console(t, build)
 
     payload = Payload.objects.get(repo=repo, build_id=build_id)
     badge = Badge.objects.get_or_create(repo=repo, branch=payload.branch)
 
-    badge.status = status['status']
-    badge.save()
+    print 'status, ', status
+    if status.get('status'):
+        badge.status = status['status']
+        badge.save()
    
     return StreamingHttpResponse(console)
-
-
-def realtime_console(t, build, res):
-    s = ''
-
-    # get build console when job is finished
-    if not build.is_running():
-        status = build.get_status()
-        yield t.render(Context({'console': build.get_console()}))
-
-    building = build.is_running()
-    # get build console when job is running
-    while building:
-        building = build.is_running()
-        console = build.get_console()
-        status = build.get_status()
-        print '-'*80
-        print console
-        news = console.strip(s)
-        print 'news'+'-'*80
-        print news
-        s = console
-        if news:
-            yield t.render(Context({'console': news}))
-        print '-'*80
-
-    res['status'] = status
 
 
 t = loader.get_template('core/build.html')

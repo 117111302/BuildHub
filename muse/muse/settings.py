@@ -46,6 +46,9 @@ JENKINS_JOB = 'demo'
 #JENKINS_PASS = 'namtriv7'
 #JENKINS_JOB = 'muse_test'
 
+# Badge
+BADGE_URL = 'http://img.shields.io/badge/build-%s-%s.svg'
+
 # Application definition
 
 INSTALLED_APPS = (
