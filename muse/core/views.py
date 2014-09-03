@@ -31,6 +31,7 @@ def login(request):
     """login view
     """
     content = {'client_id': CLIENT_ID, 'scopes':'user:email,admin:repo_hook'}
+    # if user login or not?
     return render(request, 'core/login.html', content)
 
 
@@ -51,9 +52,13 @@ def index(request, user):
     return render(request, 'core/index.html')
 
 
+#@login_required
 def oauth_callback(request, user=None):
     """oauth callback
     """
+    # get user info, set cookie, save user into db
+    # if repo has hook?
+
     # get temporary GitHub code...
     session_code = request.GET['code']
 
@@ -64,7 +69,6 @@ def oauth_callback(request, user=None):
     access_token = request.session.get('access_token')
     print access_token
 
-    # extract the token and granted scopes
     # if error:
     if not access_token:
         access_token = r.json()['access_token']
@@ -80,10 +84,14 @@ def oauth_callback(request, user=None):
     return render(request, 'core/index.html', content)
 
 
+#@login_required
 @csrf_exempt
 def payload(request):
     """github payloads
     """
+    # add enable button, if disable, do not recive event, or not send, or not build
+    # try to change Active status
+
     clone_url = ''
     event = request.META.get('HTTP_X_GITHUB_EVENT')
     print request.META.get('HTTP_X_GITHUB_EVENT')
@@ -116,10 +124,12 @@ def payload(request):
     Badge.objects.get_or_create(repo=repo, branch=branch)
     return HttpResponse('OK')
 
-
+#@login_required
 def create_hook(request):
     """create webhook
     """
+    # add enable button, if disable, do not recive event
+
     access_token=request.session['access_token']
     client = Github(access_token)
     repo = client.get_user().get_repo(request.GET['repo'])
@@ -130,9 +140,12 @@ def create_hook(request):
 	return HttpResponse(e)
 
 
+#@login_required
 def repo(request, repo):
-    """webhook page
+    """repo page
     """
+    # show last build console, build history
+
     hooks = Payload.objects.filter(repo=repo)
     hooks.reverse()
     for h in hooks:
@@ -145,7 +158,8 @@ def repo(request, repo):
 
 
 def badge(request, repo, branch):
-    #get status from db by project, branch
+    """get status from db by repo, branch
+    """
     try:
         badge = Badge.objects.get(repo=repo, branch=branch)
     except ObjectDoesNotExist:
