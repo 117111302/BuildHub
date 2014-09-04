@@ -99,22 +99,38 @@ def payload(request):
     if not payload:
 	return HttpResponse('OK')
     data = json.loads(payload)
-    print '-'*80
-    print json.dumps(data, indent=2)
-    print '-'*80
+    #print '-'*80
+    #print json.dumps(data, indent=2)
+    #print '-'*80
     if not data.get('repository'):
 	return HttpResponse('OK')
-    repo = data['repository']['name']
     print 'Jenkins job' + '-'*80
+
+    from multiprocessing import Process
+    p = Process(target=process_JJ, args=(data, payload))
+    p.start()
+    p.join()
+
+    return HttpResponse('OK')
+
+
+def process_JJ(data, payload):
+    repo = data['repository']['name']
+    branch = data['repository']['default_branch']
     J = jenkins.get_server_instance()
 #    if event == 'push':
 #        clone_url = data['repository']['clone_url']
 #    if event == 'pull_request':
 #        clone_url = data['head']['repo']['clone_url']
     r = J[settings.JENKINS_JOB].invoke(build_params={'data': payload})
-    build_id = r.get_build_number()
+    while True:
+        status = r.is_queued_or_running()
+        print 'is running', status
+        build_id = r.get_build_number()
+        if not status:
+            build_id = r.get_build_number()
+            break
     print 'build_id: ', build_id
-    branch = data['repository']['default_branch']
     Payload.objects.create(repo=repo, payload=payload, build_id=build_id, branch=branch)
     print '-'*80
     # FIXME GitHub will time out, can we use subprocess to get build status, and set status to badge?
@@ -122,7 +138,6 @@ def payload(request):
     #    print 'job status: ', r.get_build().is_running()
     #    status = r.get_build().get_status()
     Badge.objects.get_or_create(repo=repo, branch=branch)
-    return HttpResponse('OK')
 
 #@login_required
 def create_hook(request):
