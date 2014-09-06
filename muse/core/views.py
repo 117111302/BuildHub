@@ -8,15 +8,14 @@ from django.http import HttpResponse
 from django.http import StreamingHttpResponse
 from django.template import loader, Context, Template
 from django.http import HttpResponseRedirect
-from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ObjectDoesNotExist
 from github import Github
 from lib import jenkins
 from furl import furl
 
-from core.models import Payload
-from core.models import Badge
+from .models import Payload
+from .models import Badge
 
 CLIENT_ID = settings.CLIENT_ID
 CLIENT_SECRET = settings.CLIENT_SECRET
@@ -30,7 +29,7 @@ BADGE_URL = settings.BADGE_URL
 def login(request):
     """login view
     """
-    content = {'client_id': CLIENT_ID, 'scopes':'user:email,admin:repo_hook'}
+    content = {'client_id': CLIENT_ID, 'scopes': 'user:email,admin:repo_hook'}
     # if user login or not?
     return render(request, 'core/login.html', content)
 
@@ -38,8 +37,7 @@ def login(request):
 def auth(request):
     """auth with Github
     """
-    auth_uri = urlparse.urljoin
-    params = {'client_id': CLIENT_ID, 'scope':'user:email,admin:repo_hook', 'redirect_uri': REDIRECT_URI}
+    params = {'client_id': CLIENT_ID, 'scope': 'user:email,admin:repo_hook', 'redirect_uri': REDIRECT_URI}
     f = furl(OAUTH_URL)
     f.add(params)
     return HttpResponseRedirect(f.url)
@@ -149,10 +147,10 @@ def create_hook(request):
     client = Github(access_token)
     repo = client.get_user().get_repo(request.GET['repo'])
     try:
-	repo.create_hook(name='web', config=dict(url=urlparse.urljoin(SERVER, '/payload/'), content_type='json'), events=['push', 'pull_request'], active=True)
-	return HttpResponse('Create success!')
+        repo.create_hook(name='web', config=dict(url=urlparse.urljoin(SERVER, '/payload/'), content_type='json'), events=['push', 'pull_request'], active=True)
+        return HttpResponse('Create success!')
     except Exception as e:
-	return HttpResponse(e)
+        return HttpResponse(e)
 
 
 #@login_required
