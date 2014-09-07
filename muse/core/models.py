@@ -1,6 +1,12 @@
 from django.db import models
 
-# Create your models here.
+
+class Repo(models.Model):
+    repo_id = models.IntegerField(max_length=255, unique=True)
+    name = models.CharField(max_length=255)
+    enable = models.BooleanField(default=False)
+
+
 class Payload(models.Model):
     repo = models.CharField(max_length=255)
     payload = models.TextField()
@@ -11,7 +17,7 @@ class Payload(models.Model):
         unique_together = ('repo', 'build_id')
 
     def __unicode__(self):
-	return '(%d, %s)' % (self.id, self.repo)
+        return '(%d, %s)' % (self.id, self.repo)
 
 
 class Badge(models.Model):

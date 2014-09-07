@@ -16,6 +16,7 @@ from furl import furl
 
 from .models import Payload
 from .models import Badge
+from .models import Repo
 
 CLIENT_ID = settings.CLIENT_ID
 CLIENT_SECRET = settings.CLIENT_SECRET
@@ -34,8 +35,8 @@ def login(request):
     return render(request, 'core/login.html', content)
 
 
-def auth(request):
-    """auth with Github
+def signin(request):
+    """signin with Github
     """
     params = {'client_id': CLIENT_ID, 'scope': 'user:email,admin:repo_hook', 'redirect_uri': REDIRECT_URI}
     f = furl(OAUTH_URL)
@@ -43,43 +44,70 @@ def auth(request):
     return HttpResponseRedirect(f.url)
 
 
-def index(request, user):
-    """index view
+#@login_required
+def index(request):
+    """oauth callback
     """
-    print "index==================>", user
-    return render(request, 'core/index.html')
+    # get user info, set cookie, save user into db
+    # if repo has hook?
+    access_token = request.session.get('access_token')
+    if not access_token:
+        # get temporary GitHub code...
+        session_code = request.GET['code']
+        # POST it back to GitHub
+        data = {'client_id': CLIENT_ID, 'client_secret': CLIENT_SECRET, 'code': session_code}
+        headers = {'Accept': 'application/json'}
+        r = requests.post('https://github.com/login/oauth/access_token', data=data, headers=headers)
+        print access_token
+        access_token = r.json()['access_token']
+        request.session['access_token'] = access_token
+
+    client = Github(access_token)
+    user = client.get_user()
+    # List repositories for the authenticated user.
+    repos = client.get_user().get_repos()
+    for repo in repos:
+        try:
+            r = Repo.objects.get(repo_id=repo.id)
+            if r.repo_id == repo.id:
+                setattr(repo, 'enable', r.enable)
+        except ObjectDoesNotExist:
+            continue
+    # List public and private organizations for the authenticated user.
+    orgs = user.get_orgs()
+
+    content = {'repos': repos, 'orgs': orgs, 'user': user.name}
+    return render(request, 'core/index.html', content)
 
 
 #@login_required
-def oauth_callback(request, user=None):
+def profile(request, user=None):
     """oauth callback
     """
     # get user info, set cookie, save user into db
     # if repo has hook?
 
-    # get temporary GitHub code...
-    session_code = request.GET['code']
-
-    # POST it back to GitHub
-    data = {'client_id': CLIENT_ID, 'client_secret': CLIENT_SECRET, 'code': session_code}
-    headers = {'Accept': 'application/json'}
-    r = requests.post('https://github.com/login/oauth/access_token', data=data, headers=headers)
     access_token = request.session.get('access_token')
     print access_token
 
-    # if error:
-    if not access_token:
-        access_token = r.json()['access_token']
-        request.session['access_token'] = access_token
     client = Github(access_token)
     user = client.get_user()
     # List repositories for the authenticated user.
     repos = client.get_user().get_repos()
+    for repo in repos:
+        print type(repo.id)
+        try:
+            r = Repo.objects.get(repo_id=repo.id)
+            if r.repo_id == repo.id:
+                print 'repo id,', r.repo_id
+                setattr(repo, 'enable', r.enable)
+        except ObjectDoesNotExist:
+            continue
     # List public and private organizations for the authenticated user.
     orgs = user.get_orgs()
 
     content = {'repos': repos, 'orgs': orgs}
-    return render(request, 'core/index.html', content)
+    return render(request, 'core/profile.html', content)
 
 
 #@login_required
@@ -95,13 +123,13 @@ def payload(request):
     print request.META.get('HTTP_X_GITHUB_EVENT')
     payload = request.body
     if not payload:
-	return HttpResponse('OK')
+        return HttpResponse('OK')
     data = json.loads(payload)
     #print '-'*80
     #print json.dumps(data, indent=2)
     #print '-'*80
     if not data.get('repository'):
-	return HttpResponse('OK')
+        return HttpResponse('OK')
     print 'Jenkins job' + '-'*80
 
     from multiprocessing import Process
@@ -143,14 +171,17 @@ def create_hook(request):
     """
     # add enable button, if disable, do not recive event
 
-    access_token=request.session['access_token']
+    access_token = request.session['access_token']
     client = Github(access_token)
     repo = client.get_user().get_repo(request.GET['repo'])
     try:
         repo.create_hook(name='web', config=dict(url=urlparse.urljoin(SERVER, '/payload/'), content_type='json'), events=['push', 'pull_request'], active=True)
-        return HttpResponse('Create success!')
     except Exception as e:
-        return HttpResponse(e)
+        print e
+    obj, _ = Repo.objects.get_or_create(repo_id=repo.id, name=repo.name)
+    obj.enable = not obj.enable
+    obj.save()
+    return HttpResponseRedirect('/profile')
 
 
 #@login_required

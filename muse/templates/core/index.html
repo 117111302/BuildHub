@@ -1,48 +1,20 @@
-<html>
-    <head>
-    </head>
-    <body>
-	<p>
-	    Wellcome muse!
-	</p>
-	    Your repo list:<br />
-	    <table border="1" style="width:700px">
-	    <tr>
-	    <td>full_name</td>
-	    <td>url</td>
-	    <td>webhook</td>
-	    </tr>
-	    {% for repo in repos %}
-	    <tr>
-		<td>
-		    <a href="/repo/{{repo.name}}">{{repo.name}}</a>
-		</td>
-		<td>
-		    {{repo.html_url}}
-		</td>
-		<td>
-		    <a href="/create_hook?repo={{repo.name}}">Enable</a>
-		</td>
-	    </tr>
-	    {% endfor %}
-	    </table>
-	<br />
-	<p>Organizations<p/>
-	<table>
-           <tr>
-           <td>id</td>
-           <td>url</td>
-           </tr>
-           {% for org in orgs %}
-           <tr>
-               <td>
-                   {{org.login}}
-               </td>
-               <td>
-                   {{org.url}}
-               </td>
-           </tr>
-           {% endfor %}
-           </table>
-    </body>
-</html>
+{% extends "base.html" %}
+{% block content %}
+
+      <div class="row">
+        <div class="col-sm-3 col-md-2 sidebar">
+          <ul class="nav nav-sidebar">
+            <li>Enable repos</li>
+              {% for repo in repos %}
+                {% if repo.enable %}<li><a href="/repo/{{repo.name}}">{{repo.name}}</a></a></li>{% endif %}
+              {% endfor %}
+          </ul>
+        </div>
+        <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+          <div class="row placeholders">
+            history
+          </div>
+        </div>
+      </div>
+
+{% endblock %}
