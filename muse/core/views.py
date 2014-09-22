@@ -45,7 +45,7 @@ def signin(request):
 
 
 #@login_required
-def index(request):
+def profile(request):
     """oauth callback
     """
     # get user info, set cookie, save user into db
@@ -62,26 +62,39 @@ def index(request):
         access_token = r.json()['access_token']
         request.session['access_token'] = access_token
 
-    client = Github(access_token)
-    user = client.get_user()
+
+    headers = {'Accept': 'application/json'}
+
+    params = {'access_token': access_token, 'type': 'owner', 'sort': 'updated'}
     # List repositories for the authenticated user.
-    repos = client.get_user().get_repos()
+    repos = requests.get('https://api.github.com/user/repos', params=params, headers=headers)
+    repos = repos.json()
+
+    # List public and private organizations for the authenticated user.
+    orgs = requests.get('https://api.github.com/user/orgs', params=params, headers=headers)
+
+#    client = Github(access_token)
+#    user = client.get_user()
+    # List repositories for the authenticated user.
+#    repos = client.get_user().get_repos()
     for repo in repos:
         try:
-            r = Repo.objects.get(repo_id=repo.id)
-            if r.repo_id == repo.id:
-                setattr(repo, 'enable', r.enable)
+            repo_id = repo['id']
+            r = Repo.objects.get(repo_id=repo_id)
+            if r.repo_id == repo_id:
+#                setattr(repo, 'enable', r.enable)
+                repo['enable'] = r.enable
         except ObjectDoesNotExist:
             continue
     # List public and private organizations for the authenticated user.
-    orgs = user.get_orgs()
+#    orgs = user.get_orgs()
 
-    content = {'repos': repos, 'orgs': orgs, 'user': user.name}
-    return render(request, 'core/index.html', content)
+    content = {'repos': repos, 'orgs': orgs, 'user': 'gao'}
+    return render(request, 'core/profile.html', content)
 
 
 #@login_required
-def profile(request, user=None):
+def index(request, user=None):
     """oauth callback
     """
     # get user info, set cookie, save user into db
@@ -90,24 +103,13 @@ def profile(request, user=None):
     access_token = request.session.get('access_token')
     print access_token
 
-    client = Github(access_token)
-    user = client.get_user()
-    # List repositories for the authenticated user.
-    repos = client.get_user().get_repos()
-    for repo in repos:
-        print type(repo.id)
-        try:
-            r = Repo.objects.get(repo_id=repo.id)
-            if r.repo_id == repo.id:
-                print 'repo id,', r.repo_id
-                setattr(repo, 'enable', r.enable)
-        except ObjectDoesNotExist:
-            continue
+    repos = get_repos(access_token)
     # List public and private organizations for the authenticated user.
-    orgs = user.get_orgs()
+    #orgs = user.get_orgs()
 
-    content = {'repos': repos, 'orgs': orgs}
-    return render(request, 'core/profile.html', content)
+    #content = {'repos': repos, 'orgs': orgs}
+    content = {'repos': repos}
+    return render(request, 'core/index.html', content)
 
 
 #@login_required
@@ -172,13 +174,33 @@ def create_hook(request):
     # add enable button, if disable, do not recive event
 
     access_token = request.session['access_token']
-    client = Github(access_token)
-    repo = client.get_user().get_repo(request.GET['repo'])
-    try:
-        repo.create_hook(name='web', config=dict(url=urlparse.urljoin(SERVER, '/payload/'), content_type='json'), events=['push', 'pull_request'], active=True)
-    except Exception as e:
-        print e
-    obj, _ = Repo.objects.get_or_create(repo_id=repo.id, name=repo.name)
+
+    uri = '/user'
+    user_info = requests.get(urlparse.urljoin(API_ROOT, uri), params={'access_token': access_token})
+    print user_info.json()
+    user_name = user_info.json()['login']
+
+    uri = '/repos/%s/%s' % (user_name, request.GET['repo'])
+
+    repo = requests.get(urlparse.urljoin(API_ROOT, uri))
+    repo = repo.json()
+
+    data = dict(name='web',
+                events=['push', 'pull_request'],
+                active=True,
+                config=dict(url=urlparse.urljoin(SERVER, '/payload/'),
+                    content_type='json')
+                )
+    uri = '/repos/%s/%s/hooks' % (user_name, request.GET['repo'])
+    hook = requests.post(urlparse.urljoin(API_ROOT, uri), data=json.dumps(data), params={'access_token': access_token})
+
+#    client = Github(access_token)
+#    repo = client.get_user().get_repo(request.GET['repo'])
+#    try:
+#        repo.create_hook(name='web', config=dict(url=urlparse.urljoin(SERVER, '/payload/'), content_type='json'), events=['push', 'pull_request'], active=True)
+#    except Exception as e:
+#        print e
+    obj, _ = Repo.objects.get_or_create(repo_id=repo['id'], name=repo['name'])
     obj.enable = not obj.enable
     obj.save()
     return HttpResponseRedirect('/profile')
@@ -280,3 +302,23 @@ def stream_view(request):
 
     response = StreamingHttpResponse(gen_rendered())
     return response
+
+
+def get_repos(access_token):
+    headers = {'Accept': 'application/json'}
+
+    params = {'access_token': access_token, 'type': 'owner', 'sort': 'updated'}
+    # List repositories for the authenticated user.
+    repos = requests.get('https://api.github.com/user/repos', params=params, headers=headers)
+
+    # List repositories for the authenticated user.
+    repos = repos.json()
+    for repo in repos:
+        try:
+            repo_id = repo['id']
+            r = Repo.objects.get(repo_id=repo_id)
+            if r.repo_id == repo_id:
+                repo['enable'] = r.enable
+        except ObjectDoesNotExist:
+            continue
+    return repos

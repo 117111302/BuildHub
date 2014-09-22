@@ -1,10 +1,18 @@
-<table border=1>
+{% extends "base.html" %}
+{% block content %}
+<ul class="nav nav-tabs" role="tablist">
+  <li {% if not build_id %}class="active" {% endif %}><a href="#">Current</a></li>
+  <li><a href="#">Build History</a></li>
+  {% if build_id %}<li class="active"><a href="#">{{build_id}}</a></li>{% endif %}
+</ul>
+
+<table class="table table-striped">
 	<tr>
 		<td>
-			repo
+			Build
 		</td>
 		<td>
-			payload
+			Message
 		</td>
 	</tr>
 	{% for hook in hooks %}
@@ -18,3 +26,5 @@
 		</tr>
 	{% endfor %}
 </table>
+
+{% endblock %}

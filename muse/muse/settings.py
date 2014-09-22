@@ -29,12 +29,11 @@ ALLOWED_HOSTS = []
 
 # GitHub Client
 GITHUB_API = 'https://api.github.com/'
-#BACKEND_SERVER = 'http://72c2a2b6.ngrok.com'
-BACKEND_SERVER = 'http://8100fe8.ngrok.com'
+BACKEND_SERVER = 'http://37b5e490.ngrok.com'
 CLIENT_ID = 'c24112678dd3df9d297a'
 CLIENT_SECRET = '91173ae4a4274d2a5602d188dcc0f1cc9078be04'
 OAUTH_URL = 'https://github.com/login/oauth/authorize'
-REDIRECT_URI = urlparse.urljoin(BACKEND_SERVER, '/index')
+REDIRECT_URI = urlparse.urljoin(BACKEND_SERVER, '/profile')
 
 # Jenkins
 JENKINS_URL = 'http://tzs.bj.intel.com/ci/'

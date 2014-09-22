@@ -1,8 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
-<h1 class="cover-heading">Hey, we're so glad you're here!</h1>
-<p class="lead">In order to view your repositories, please sign in.</p>
-<p class="lead">
-  <a href="/signin" class="btn btn-lg btn-default">Sign in with GitHub</a>
-</p>
+
+<div class="jumbotron">
+  <h1>Hey, we're so glad you're here!</h1>
+  <p>In order to view your repositories, please sign in.</p>
+  <p><a href="/signin" class="btn btn-primary btn-lg" role="button">Sign in with GitHub</a></p>
+</div>
+
 {% endblock %}
