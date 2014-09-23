@@ -21,6 +21,7 @@ urlpatterns += patterns(views,
     url(r'^create_hook/', views.create_hook),
     url(r'^repo/(\w+)/$', views.repo),
     url(r'^badge/(\w+)/(\w+)/$', views.badge),
+    url(r'^(\w+)/builds/$', views.builds),
     url(r'^(\w+)/builds/(\d+)/$', views.builds),
     url(r'^stream/', views.stream_view),
 )

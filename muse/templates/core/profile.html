@@ -1,34 +1,39 @@
 {% extends "base.html" %}
 {% block content %}
-	<p>
-	    Wellcome muse!
-	</p>
-	    Your repo list:<br />
-	    <table class="table table-striped">
-	    <tr>
+<div class="container">
+    <div class="page-header">
+        <h2>Repositories</h1>
+    </div>
+
+    <table class="table table-striped">
+        <tr>
 	    <td>full_name</td>
 	    <td>url</td>
 	    <td>webhook</td>
-	    </tr>
-	    {% for repo in repos %}
-	    <tr>
-		<td>
-		    <a href="/repo/{{repo.name}}">{{repo.name}}</a>
-		</td>
-		<td>
-		    {{repo.html_url}}
-		</td>
-		<td>
-            {% if repo.enable %}
-                <a href="/create_hook?repo={{repo.name}}">Disable</a>
-            {% else %}
-                <a href="/create_hook?repo={{repo.name}}">Enable</a>
-            {% endif %}
-		</td>
-	    </tr>
-	    {% endfor %}
-	    </table>
-	<br />
+	</tr>
+	{% for repo in repos %}
+	<tr>
+	    <td>
+	        <a href="/repo/{{repo.name}}">{{repo.name}}</a>
+            </td>
+	    <td>
+	        {{repo.html_url}}
+	    </td>
+	    <td>
+                {% if repo.enable %}
+                    <a href="/create_hook?repo={{repo.name}}">
+<span class="label label-success">ON</span>
+</a>
+                {% else %}
+                    <a href="/create_hook?repo={{repo.name}}">
+<span class="label label-default">OFF</span>
+</a>
+                {% endif %}
+	    </td>
+	</tr>
+	{% endfor %}
+    </table>
+    <br />
 <!--
 	<p>Organizations<p/>
 	<table>
@@ -48,4 +53,5 @@
            {% endfor %}
            </table>
 -->
+</div>
 {% endblock %}

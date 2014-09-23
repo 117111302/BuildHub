@@ -8,16 +8,21 @@ class Repo(models.Model):
 
 
 class Payload(models.Model):
-    repo = models.CharField(max_length=255)
-    payload = models.TextField()
+    repo_id = models.CharField(max_length=30)
+    name = models.CharField(max_length=255)
     build_id = models.CharField(max_length=30)
     branch = models.CharField(max_length=255)
+    message = models.CharField(max_length=255)
+    commit = models.CharField(max_length=255)
+    committer = models.CharField(max_length=255)
+    start = models.CharField(max_length=255)
+    end = models.CharField(max_length=255)
 
     class Meta:
-        unique_together = ('repo', 'build_id')
+        unique_together = ('repo_id', 'commit')
 
     def __unicode__(self):
-        return '(%d, %s)' % (self.id, self.repo)
+        return '(%d, %s)' % (self.id, self.name)
 
 
 class Badge(models.Model):

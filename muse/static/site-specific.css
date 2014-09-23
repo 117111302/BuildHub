@@ -1,0 +1,84 @@
+/*
+ * This file is part of IRIS: Infrastructure and Release Information System
+ *
+ *  Copyright (C) 2013 Intel Corporation
+ *
+ *  IRIS is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU General Public License
+ *  version 2.0 as published by the Free Software Foundation.
+ */
+
+/*
+ * This is the site specific CSS definition for the IRIS project.
+ * Overloads and rules additional to BootStrap should go here.
+ */
+
+/* We need to push the main content div down because of the navbar. */
+body {
+    padding-top: 70px;
+}
+
+img.tizen {
+    width: 26px;
+    height: 28px;
+    background: url(logo.png) -196px 0 no-repeat;
+    vertical-align: bottom;
+}
+
+/* Adds the margin below save and cancel buttons in forms. */
+.form-container {
+    margin-bottom: 3em;
+}
+
+/* Styling of the submissions page filters */
+.submissions-filters {
+    border-bottom-left-radius: 0px !important;
+    border-bottom-right-radius: 0px !important;
+}
+
+.submissions-column-filters {
+    padding-left: 0px !important;
+    padding-right: 0px !important;
+}
+
+.submissions-column-filters > table {
+    margin-bottom: 0px !important;
+    border-right: 0px hidden !important;
+    border-left: 0px hidden !important;
+    border-bottom: 0px hidden !important;
+}
+
+.submissions-select {
+    margin-top: 0px !important;
+    margin-right: 5px !important;
+    width: 1em;
+    height: 1em;
+}
+
+/* Overwrite default values from jquery-multi-select plugin */
+body .ms-container {
+    width: auto;
+}
+
+body .ms-container .ms-list {
+    height: 400px;
+}
+
+.base-footer {
+  text-align:center;
+  border-top:1px solid #e5e5e5;
+  color:#999;
+  margin-top:100px;
+  padding-top:20px;
+  padding-bottom:20px;
+}
+.base-footer p {
+  margin: 0;
+}
+.base-footer ul {
+  margin-top: 20px;
+}
+.base-footer li {
+  display: inline;
+  padding: 0 2px;
+}

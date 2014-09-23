@@ -1,4 +1,8 @@
+# -*- coding: utf-8 -*-
+
 import json
+import time
+import datetime
 import requests
 import urlparse
 
@@ -143,13 +147,15 @@ def payload(request):
 
 
 def process_JJ(data, payload):
-    repo = data['repository']['name']
+    repo_name = data['repository']['name']
     branch = data['repository']['default_branch']
     J = jenkins.get_server_instance()
 #    if event == 'push':
 #        clone_url = data['repository']['clone_url']
 #    if event == 'pull_request':
 #        clone_url = data['head']['repo']['clone_url']
+
+    # FIXME build id is not sync
     r = J[settings.JENKINS_JOB].invoke(build_params={'data': payload})
     while True:
         status = r.is_queued_or_running()
@@ -159,13 +165,30 @@ def process_JJ(data, payload):
             build_id = r.get_build_number()
             break
     print 'build_id: ', build_id
-    Payload.objects.create(repo=repo, payload=payload, build_id=build_id, branch=branch)
+
+    repo_id = data['repository']['id']
+    message = data['head_commit']['message']
+    commit = data['head_commit']['id'][:7]
+    committer = data['head_commit']['committer']['name']
+    timestamp = data['head_commit']['timestamp']
+    start = timestamp
+    end = time.time()
+
+    payload, created = Payload.objects.get_or_create(repo_id=repo_id, commit=commit)
+    payload.name = repo_name
+    payload.committer = committer
+    payload.build_id = build_id
+    payload.branch = branch
+    payload.start = start
+    payload.end = end
+    payload.save()
+
     print '-'*80
     # FIXME GitHub will time out, can we use subprocess to get build status, and set status to badge?
     #while r.get_build().is_running():
     #    print 'job status: ', r.get_build().is_running()
     #    status = r.get_build().get_status()
-    Badge.objects.get_or_create(repo=repo, branch=branch)
+    Badge.objects.get_or_create(repo=repo_name, branch=branch)
 
 #@login_required
 def create_hook(request):
@@ -211,14 +234,23 @@ def repo(request, repo):
     """repo page
     """
     # show last build console, build history
-
-    hooks = Payload.objects.filter(repo=repo)
-    hooks.reverse()
-    for h in hooks:
-        h.pretty = json.dumps(json.loads(h.payload), indent=2)
-
+    builds = Payload.objects.filter(name=repo)
+    builds.reverse()
+    current = builds[0] if len(builds) > 0 else None
     J = jenkins.get_server_instance()
-    r = J[settings.JENKINS_JOB].get_last_build().get_console()
+    console = J[settings.JENKINS_JOB].get_last_build().get_console()
+
+    return render(request, 'core/repo.html', {'current': current, 'console': console, 'repo': repo})
+
+
+#@login_required
+def builds(request, repo):
+    """repo page
+    """
+    # show last build console, build history
+
+    builds = Payload.objects.filter(name=repo)
+    builds.reverse()
  
     return render(request, 'core/repo.html', locals())
 
@@ -236,7 +268,7 @@ def badge(request, repo, branch):
     return HttpResponseRedirect(BADGE_URL % ref[status])
 
 
-def builds(request, repo, build_id):
+def console(request, repo, build_id):
     """get build console
     """
     status = {}
