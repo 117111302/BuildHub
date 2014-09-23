@@ -6,10 +6,13 @@ import datetime
 import requests
 import urlparse
 
+from django.contrib.auth.models import User
 from django.shortcuts import render
 from django.conf import settings
 from django.http import HttpResponse
 from django.http import StreamingHttpResponse
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
 from django.template import loader, Context, Template
 from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_exempt
@@ -31,12 +34,43 @@ REDIRECT_URI = settings.REDIRECT_URI
 BADGE_URL = settings.BADGE_URL
 
 
-def login(request):
+def logout_view(request):
+    logout(request)
+    return HttpResponseRedirect('/')
+
+
+def login_view(request):
     """login view
     """
     content = {'client_id': CLIENT_ID, 'scopes': 'user:email,admin:repo_hook'}
     # if user login or not?
     return render(request, 'core/login.html', content)
+
+
+def auth(request):
+    # get temporary GitHub code...
+    session_code = request.GET['code']
+    # POST it back to GitHub
+    data = {'client_id': CLIENT_ID, 'client_secret': CLIENT_SECRET, 'code': session_code}
+    headers = {'Accept': 'application/json'}
+    r = requests.post('https://github.com/login/oauth/access_token', data=data, headers=headers)
+    print r.json()
+    access_token = r.json().get('access_token')
+    if not access_token:
+	return HttpResponseRedirect('/')
+    request.session['access_token'] = access_token
+    uri = '/user'
+    user_info = requests.get(urlparse.urljoin(API_ROOT, uri), params={'access_token': access_token})
+    user_id = user_info.json()['id']
+    user_name = user_info.json()['login']
+    user, created = User.objects.get_or_create(username=user_name)
+    user.set_password('password')
+    user.save()
+    user = authenticate(username=user_name, password='password')
+    login(request, user)
+
+    print request.session.get('access_token')
+    return HttpResponseRedirect('/profile/')
 
 
 def signin(request):
@@ -45,27 +79,18 @@ def signin(request):
     params = {'client_id': CLIENT_ID, 'scope': 'user:email,admin:repo_hook', 'redirect_uri': REDIRECT_URI}
     f = furl(OAUTH_URL)
     f.add(params)
-    return HttpResponseRedirect(f.url)
+    response = HttpResponseRedirect(f.url)
+    return response
 
 
-#@login_required
+@login_required
 def profile(request):
     """oauth callback
     """
     # get user info, set cookie, save user into db
     # if repo has hook?
     access_token = request.session.get('access_token')
-    if not access_token:
-        # get temporary GitHub code...
-        session_code = request.GET['code']
-        # POST it back to GitHub
-        data = {'client_id': CLIENT_ID, 'client_secret': CLIENT_SECRET, 'code': session_code}
-        headers = {'Accept': 'application/json'}
-        r = requests.post('https://github.com/login/oauth/access_token', data=data, headers=headers)
-        print access_token
-        access_token = r.json()['access_token']
-        request.session['access_token'] = access_token
-
+    print 'access_token:', access_token
 
     headers = {'Accept': 'application/json'}
 
@@ -93,11 +118,11 @@ def profile(request):
     # List public and private organizations for the authenticated user.
 #    orgs = user.get_orgs()
 
-    content = {'repos': repos, 'orgs': orgs, 'user': 'gao'}
+    content = {'repos': repos, 'orgs': orgs}
     return render(request, 'core/profile.html', content)
 
 
-#@login_required
+@login_required
 def index(request, user=None):
     """oauth callback
     """
@@ -116,7 +141,7 @@ def index(request, user=None):
     return render(request, 'core/index.html', content)
 
 
-#@login_required
+@login_required
 @csrf_exempt
 def payload(request):
     """github payloads
@@ -157,6 +182,7 @@ def process_JJ(data, payload):
 
     # FIXME build id is not sync
     r = J[settings.JENKINS_JOB].invoke(build_params={'data': payload})
+    start = datetime.datetime.now()
     while True:
         status = r.is_queued_or_running()
         print 'is running', status
@@ -165,22 +191,20 @@ def process_JJ(data, payload):
             build_id = r.get_build_number()
             break
     print 'build_id: ', build_id
-
     repo_id = data['repository']['id']
     message = data['head_commit']['message']
     commit = data['head_commit']['id'][:7]
     committer = data['head_commit']['committer']['name']
     timestamp = data['head_commit']['timestamp']
-    start = timestamp
-    end = time.time()
 
     payload, created = Payload.objects.get_or_create(repo_id=repo_id, commit=commit)
     payload.name = repo_name
     payload.committer = committer
+    payload.message = message
     payload.build_id = build_id
     payload.branch = branch
     payload.start = start
-    payload.end = end
+    payload.end = datetime.datetime.now()
     payload.save()
 
     print '-'*80
@@ -190,7 +214,7 @@ def process_JJ(data, payload):
     #    status = r.get_build().get_status()
     Badge.objects.get_or_create(repo=repo_name, branch=branch)
 
-#@login_required
+@login_required
 def create_hook(request):
     """create webhook
     """
@@ -229,28 +253,41 @@ def create_hook(request):
     return HttpResponseRedirect('/profile')
 
 
-#@login_required
+@login_required
 def repo(request, repo):
     """repo page
     """
     # show last build console, build history
-    builds = Payload.objects.filter(name=repo)
-    builds.reverse()
-    current = builds[0] if len(builds) > 0 else None
+    payloads = Payload.objects.filter(name=repo).order_by('-id')
+    current = payloads[0] if payloads else {}
     J = jenkins.get_server_instance()
     console = J[settings.JENKINS_JOB].get_last_build().get_console()
+    console = 'console is not exist in test server'
 
     return render(request, 'core/repo.html', {'current': current, 'console': console, 'repo': repo})
 
 
-#@login_required
+@login_required
 def builds(request, repo):
     """repo page
     """
     # show last build console, build history
+    builds = Payload.objects.filter(name=repo).order_by('-id')
+    for i in builds:
+        print i.start
+    return render(request, 'core/repo.html', locals())
 
-    builds = Payload.objects.filter(name=repo)
-    builds.reverse()
+
+@login_required
+def get_build(request, repo, build_id):
+    """repo page
+    """
+    # show last build console, build history
+    J = jenkins.get_server_instance()
+    console = J[settings.JENKINS_JOB].get_last_build().get_console()
+    console = 'console is not exist in test server'
+
+    current = Payload.objects.get(name=repo, id=build_id)
  
     return render(request, 'core/repo.html', locals())
 

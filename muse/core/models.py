@@ -15,8 +15,8 @@ class Payload(models.Model):
     message = models.CharField(max_length=255)
     commit = models.CharField(max_length=255)
     committer = models.CharField(max_length=255)
-    start = models.CharField(max_length=255)
-    end = models.CharField(max_length=255)
+    start = models.DateTimeField(auto_now_add=True)
+    end = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ('repo_id', 'commit')

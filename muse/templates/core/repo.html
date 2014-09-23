@@ -2,21 +2,27 @@
 {% block content %}
 <div class="container">
 <ul class="nav nav-tabs" role="tablist" id='tabs'>
-  <li {% if current %}class="active"{% endif %}><a href="/repo/{{ repo }}">Current</a></li>
+  <li {% if current and not build_id  %}class="active"{% endif %}><a href="/repo/{{ repo }}">Current</a></li>
   <li {% if builds %}class="active"{% endif %}><a href="/{{ repo }}/builds/">Build History</a></li>
-  {% if build_id %}<li class="active"><a href="#">{{build_id}}</a></li>{% endif %}
+  {% if current and build_id %}<li class="active"><a href="#">{{current.id}}</a></li>{% endif %}
 </ul>
 
 <div class="tab-content">
   <div class="tab-pane {% if current %}active{% endif %}" id="current">
     <div>
       <div class="left">
-        
+      Commit message
       </div>
       <pre>{{ current.message }}</pre>
-      <div>{{ current.committer }}</div>
+      <div>Committer: {{ current.committer }}</div>
       <div class="right">
-        {{ current.start }}
+        Build start time: {{ current.start }}
+      </div>
+      <div class="right">
+        Build end time: {{ current.end }}
+      </div>
+      <div class="right">
+        Build console
       </div>
       <pre>
         {{ console }}
@@ -49,7 +55,7 @@
 	{% for build in builds %}
 		<tr>
 			<td>
-				<a href="/{{build.name}}/builds/{{build.build_id}}/">{{build.build_id}}</a>
+				<a href="/{{build.name}}/builds/{{build.id}}/">{{build.id}}</a>
 			</td>
 			<td>
 				{{build.message}}
@@ -62,10 +68,10 @@
 				{{build.committer}}
 			</td>
 			<td>
-				{{build.start}}
+				{{ build.end|timesince:build.start }}
 			</td>
 			<td>
-				{{build.end}}
+			        {{ build.end|timesince}} agao
 			</td>
 		</tr>
 	{% endfor %}
