@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h2>Repositories</h1>
+    </div>
+
+    <table class="table table-striped">
+        <tr>
+	    <td>full_name</td>
+	    <td>url</td>
+	    <td>webhook</td>
+	</tr>
+	{% for repo in repos %}
+	<tr>
+	    <td>
+	        <a href="/repo/{{repo.name}}">{{repo.name}}</a>
+            </td>
+	    <td>
+	        {{repo.html_url}}
+	    </td>
+	    <td>
+                {% if repo.enable %}
+                    <a href="/create_hook?repo={{repo.name}}">
+<span class="label label-success">ON</span>
+</a>
+                {% else %}
+                    <a href="/create_hook?repo={{repo.name}}">
+<span class="label label-default">OFF</span>
+</a>
+                {% endif %}
+	    </td>
+	</tr>
+	{% endfor %}
+    </table>
+    <br />
+<!--
+	<p>Organizations<p/>
+	<table>
+           <tr>
+           <td>id</td>
+           <td>url</td>
+           </tr>
+           {% for org in orgs %}
+           <tr>
+               <td>
+                   {{org.login}}
+               </td>
+               <td>
+                   {{org.url}}
+               </td>
+           </tr>
+           {% endfor %}
+           </table>
+-->
+</div>
+{% endblock %}

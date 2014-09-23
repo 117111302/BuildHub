@@ -1,20 +1,84 @@
-<table border=1>
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+<ul class="nav nav-tabs" role="tablist" id='tabs'>
+  <li {% if current %}class="active"{% endif %}><a href="/repo/{{ repo }}">Current</a></li>
+  <li {% if builds %}class="active"{% endif %}><a href="/{{ repo }}/builds/">Build History</a></li>
+  {% if build_id %}<li class="active"><a href="#">{{build_id}}</a></li>{% endif %}
+</ul>
+
+<div class="tab-content">
+  <div class="tab-pane {% if current %}active{% endif %}" id="current">
+    <div>
+      <div class="left">
+        
+      </div>
+      <pre>{{ current.message }}</pre>
+      <div>{{ current.committer }}</div>
+      <div class="right">
+        {{ current.start }}
+      </div>
+      <pre>
+        {{ console }}
+      </pre>
+    </div>
+  </div>
+  <div class="tab-pane {% if builds %}active{% endif %}" id="builds">
+    <table class="table table-striped">
 	<tr>
 		<td>
-			repo
+			Build
 		</td>
 		<td>
-			payload
+			Message
 		</td>
+		<td>
+			Commit
+		</td>
+		<td>
+			Committer
+		</td>
+		<td>
+			Duration
+		</td>
+		<td>
+			Finished
+		</td>
+
 	</tr>
-	{% for hook in hooks %}
+	{% for build in builds %}
 		<tr>
 			<td>
-				<a href="/{{hook.repo}}/builds/{{hook.build_id}}/">{{hook.repo}}</a>
+				<a href="/{{build.name}}/builds/{{build.build_id}}/">{{build.build_id}}</a>
 			</td>
 			<td>
-				<pre>{{hook.pretty}}</pre>
+				{{build.message}}
+			</td>
+			<td>
+				{{build.commit}}
+			</td>
+
+			<td>
+				{{build.committer}}
+			</td>
+			<td>
+				{{build.start}}
+			</td>
+			<td>
+				{{build.end}}
 			</td>
 		</tr>
 	{% endfor %}
-</table>
+    </table>
+  </div>
+</div>
+
+</div>
+
+<script>
+  $(function () {
+    $('#tabs a:last').tab('show')
+  })
+</script>
+
+{% endblock %}
