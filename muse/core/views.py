@@ -70,7 +70,7 @@ def auth(request):
     login(request, user)
 
     print request.session.get('access_token')
-    return HttpResponseRedirect('/profile/')
+    return HttpResponseRedirect('/repos/')
 
 
 def signin(request):
@@ -84,7 +84,7 @@ def signin(request):
 
 
 @login_required
-def profile(request):
+def repos(request):
     """oauth callback
     """
     # get user info, set cookie, save user into db
@@ -113,13 +113,14 @@ def profile(request):
             if r.repo_id == repo_id:
 #                setattr(repo, 'enable', r.enable)
                 repo['enable'] = r.enable
+                repo['hook_id'] = r.hook_id
         except ObjectDoesNotExist:
             continue
     # List public and private organizations for the authenticated user.
 #    orgs = user.get_orgs()
 
     content = {'repos': repos, 'orgs': orgs}
-    return render(request, 'core/profile.html', content)
+    return render(request, 'core/repos.html', content)
 
 
 @login_required
@@ -141,7 +142,6 @@ def index(request, user=None):
     return render(request, 'core/index.html', content)
 
 
-@login_required
 @csrf_exempt
 def payload(request):
     """github payloads
@@ -202,6 +202,7 @@ def process_JJ(data, payload):
     payload.committer = committer
     payload.message = message
     payload.build_id = build_id
+    payload.build_job = settings.JENKINS_JOB
     payload.branch = branch
     payload.start = start
     payload.end = datetime.datetime.now()
@@ -227,19 +228,65 @@ def create_hook(request):
     print user_info.json()
     user_name = user_info.json()['login']
 
-    uri = '/repos/%s/%s' % (user_name, request.GET['repo'])
+    repo_id = request.GET['repo_id']
+    repo_name = request.GET['repo']
+
+    uri = '/repositories/%s' % (repo_id)
 
     repo = requests.get(urlparse.urljoin(API_ROOT, uri))
     repo = repo.json()
 
     data = dict(name='web',
-                events=['push', 'pull_request'],
+                events=['push'],
                 active=True,
                 config=dict(url=urlparse.urljoin(SERVER, '/payload/'),
                     content_type='json')
                 )
-    uri = '/repos/%s/%s/hooks' % (user_name, request.GET['repo'])
+    uri = '/repos/%s/%s/hooks' % (user_name, repo_name)
     hook = requests.post(urlparse.urljoin(API_ROOT, uri), data=json.dumps(data), params={'access_token': access_token})
+    # FIXME Hook is already existed.
+    print hook.status_code
+    hook = hook.json()
+    print hook
+#    client = Github(access_token)
+#    repo = client.get_user().get_repo(request.GET['repo'])
+#    try:
+#        repo.create_hook(name='web', config=dict(url=urlparse.urljoin(SERVER, '/payload/'), content_type='json'), events=['push', 'pull_request'], active=True)
+#    except Exception as e:
+#        print e
+    obj, _ = Repo.objects.get_or_create(repo_id=repo_id)
+    obj.name = repo_name
+    obj.hook_id = hook['id']
+    obj.enable = hook['active']
+    obj.save()
+    return HttpResponseRedirect('/repos/')
+
+
+@login_required
+def edit_hook(request):
+    """edit webhook
+    """
+
+    access_token = request.session['access_token']
+
+    uri = '/user'
+    user_info = requests.get(urlparse.urljoin(API_ROOT, uri), params={'access_token': access_token})
+    user_name = user_info.json()['login']
+
+    repo_id = request.GET['repo_id']
+    repo_name = request.GET['repo']
+    uri = '/repositories/%s' % (repo_id)
+
+    repo = requests.get(urlparse.urljoin(API_ROOT, uri))
+    repo = repo.json()
+    obj = Repo.objects.get(repo_id=repo_id)
+
+    data = dict(active=not obj.enable,)
+    uri = '/repos/%s/%s/hooks/%s' % (user_name, repo_name, request.GET['hook_id'])
+    hook = requests.patch(urlparse.urljoin(API_ROOT, uri), data=json.dumps(data), params={'access_token': access_token})
+    hook = hook.json()
+    print hook
+    obj.enable = hook['active']
 
 #    client = Github(access_token)
 #    repo = client.get_user().get_repo(request.GET['repo'])
@@ -247,10 +294,9 @@ def create_hook(request):
 #        repo.create_hook(name='web', config=dict(url=urlparse.urljoin(SERVER, '/payload/'), content_type='json'), events=['push', 'pull_request'], active=True)
 #    except Exception as e:
 #        print e
-    obj, _ = Repo.objects.get_or_create(repo_id=repo['id'], name=repo['name'])
-    obj.enable = not obj.enable
+
     obj.save()
-    return HttpResponseRedirect('/profile')
+    return HttpResponseRedirect('/repos/')
 
 
 @login_required
@@ -260,35 +306,33 @@ def repo(request, repo):
     # show last build console, build history
     payloads = Payload.objects.filter(name=repo).order_by('-id')
     current = payloads[0] if payloads else {}
-    J = jenkins.get_server_instance()
-    console = J[settings.JENKINS_JOB].get_last_build().get_console()
-    console = 'console is not exist in test server'
+    if current:
+        J = jenkins.get_server_instance()
+        console = J[current.build_job].get_build(int(current.build_id)).get_console()
 
-    return render(request, 'core/repo.html', {'current': current, 'console': console, 'repo': repo})
+    return render(request, 'core/repo.html', locals())
 
 
 @login_required
 def builds(request, repo):
-    """repo page
+    """show build history
     """
-    # show last build console, build history
     builds = Payload.objects.filter(name=repo).order_by('-id')
-    for i in builds:
-        print i.start
+    for build in builds:
+        build.message = build.message.strip().splitlines()[0]
     return render(request, 'core/repo.html', locals())
 
 
 @login_required
 def get_build(request, repo, build_id):
-    """repo page
+    """get specific build information
     """
-    # show last build console, build history
     J = jenkins.get_server_instance()
-    console = J[settings.JENKINS_JOB].get_last_build().get_console()
-    console = 'console is not exist in test server'
-
-    current = Payload.objects.get(name=repo, id=build_id)
- 
+    try:
+        current = Payload.objects.get(name=repo, build_id=build_id)
+    except Payload.DoesNotExist:
+        current = {}
+    console = J[current.build_job].get_build(int(build_id)).get_console()
     return render(request, 'core/repo.html', locals())
 
 
@@ -297,7 +341,7 @@ def badge(request, repo, branch):
     """
     try:
         badge = Badge.objects.get(repo=repo, branch=branch)
-    except ObjectDoesNotExist:
+    except Badge.DoesNotExist:
         status = 'UNKNOW'
     else:
         status = badge.status

@@ -2,9 +2,11 @@
 {% block content %}
 
 <div class="jumbotron">
-    <h2>Hey, we're so glad you're here!</h1>
+    <h2>Welcome to BuildHub!</h1>
+{% if not user.is_authenticated %}
     <p>In order to view your repositories, please sign in.</p>
     <p><a href="/signin" class="btn btn-primary btn-lg" role="button">Sign in with GitHub</a></p>
+{% endif %}
 </div>
 
 {% endblock %}

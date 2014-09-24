@@ -8,7 +8,7 @@
     <meta name="author" content="Nemo">
     <link rel="icon" href="/static/favicon.ico">
 
-    <title>Muse CI</title>
+    <title>BuildHub</title>
     <!-- Bootstrap core CSS -->
     <link href="/static/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link href="/static/bootstrap/css/bootstrap-theme.min.css" rel="stylesheet">
@@ -30,23 +30,20 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="/">Muse-CI</a>
+          <a class="navbar-brand" href="/">BuildHub</a>
         </div>
         <div class="navbar-collapse collapse">
+          {% if user.is_authenticated %}
           <ul class="nav navbar-nav">
-            <li><a href="/profile/">Profile</a></li>
+            <li><a href="/repos/">Repos</a></li>
           </ul>
+          {% endif %}
           <ul class="nav navbar-nav navbar-right">
              {% if user.is_authenticated %}
              <form class="navbar-form navbar-right" method="GET" action="/logout/">
                  <button type="submit" class="btn btn-default">Sign out</button>
              </form>
              <p class="navbar-text navbar-right">Signed in as {{ user.username }}</p>
-
-             {% else %}
-             <form class="navbar-form navbar-right" method="POST" action="/signin/">
-                 <button type="submit" class="btn btn-default">Sign in</button>
-	         {% csrf_token %}
              </form>
              {% endif %}
           </ul>
@@ -60,7 +57,6 @@
 
     <footer class="base-footer">
         <div class="container">
-            <p>Powered by <a href="http://getbootstrap.com">Bootstrap</a>, github <a href="https://github.com/117111302/muse">muse-ci</a>.</p>
         </div>
     </footer>
 

@@ -4,13 +4,18 @@ from django.db import models
 class Repo(models.Model):
     repo_id = models.IntegerField(max_length=255, unique=True)
     name = models.CharField(max_length=255)
+    hook_id = models.CharField(max_length=30)
     enable = models.BooleanField(default=False)
+
+    def __unicode__(self):
+        return '(%s, %s)' % (self.repo_id, self.name)
 
 
 class Payload(models.Model):
     repo_id = models.CharField(max_length=30)
     name = models.CharField(max_length=255)
     build_id = models.CharField(max_length=30)
+    build_job = models.CharField(max_length=255)
     branch = models.CharField(max_length=255)
     message = models.CharField(max_length=255)
     commit = models.CharField(max_length=255)

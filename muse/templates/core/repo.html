@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container">
+    <div class="page-header">
+        <h2>{{repo}}</h1>
+    </div>
 <ul class="nav nav-tabs" role="tablist" id='tabs'>
   <li {% if current and not build_id  %}class="active"{% endif %}><a href="/repo/{{ repo }}">Current</a></li>
   <li {% if builds %}class="active"{% endif %}><a href="/{{ repo }}/builds/">Build History</a></li>
@@ -55,7 +58,7 @@
 	{% for build in builds %}
 		<tr>
 			<td>
-				<a href="/{{build.name}}/builds/{{build.id}}/">{{build.id}}</a>
+				<a href="/{{build.name}}/builds/{{build.build_id}}/">{{build.id}}</a>
 			</td>
 			<td>
 				{{build.message}}

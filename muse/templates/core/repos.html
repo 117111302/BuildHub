@@ -7,28 +7,34 @@
 
     <table class="table table-striped">
         <tr>
-	    <td>full_name</td>
-	    <td>url</td>
-	    <td>webhook</td>
+	    <th>Name</th>
+	    <th>Enabled</th>
 	</tr>
 	{% for repo in repos %}
 	<tr>
 	    <td>
+                {% if repo.enable %}
 	        <a href="/repo/{{repo.name}}">{{repo.name}}</a>
+		{% else %}
+		{{ repo.name }}
+		{% endif %}
             </td>
 	    <td>
-	        {{repo.html_url}}
-	    </td>
-	    <td>
+		{% if repo.hook_id %}
                 {% if repo.enable %}
-                    <a href="/create_hook?repo={{repo.name}}">
+                    <a href="/edit_hook/?repo_id={{repo.id}}&repo={{repo.name}}&hook_id={{repo.hook_id}}">
 <span class="label label-success">ON</span>
 </a>
                 {% else %}
-                    <a href="/create_hook?repo={{repo.name}}">
+                    <a href="/edit_hook/?repo_id={{repo.id}}&repo={{repo.name}}hook_id={{repo.hook_id}}">
 <span class="label label-default">OFF</span>
 </a>
                 {% endif %}
+		{% else %}
+                    <a href="/create_hook/?repo_id={{repo.id}}&repo={{repo.name}}">
+<span class="label label-default">OFF</span>
+</a>
+		{% endif %}
 	    </td>
 	</tr>
 	{% endfor %}
