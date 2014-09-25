@@ -5,6 +5,7 @@ import time
 import datetime
 import requests
 import urlparse
+from multiprocessing import Process
 
 from django.contrib.auth.models import User
 from django.shortcuts import render
@@ -17,6 +18,7 @@ from django.template import loader, Context, Template
 from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ObjectDoesNotExist
+from django.utils import timezone
 from github import Github
 from lib import jenkins
 from furl import furl
@@ -156,14 +158,10 @@ def payload(request):
     if not payload:
         return HttpResponse('OK')
     data = json.loads(payload)
-    #print '-'*80
-    #print json.dumps(data, indent=2)
-    #print '-'*80
     if not data.get('repository'):
         return HttpResponse('OK')
     print 'Jenkins job' + '-'*80
 
-    from multiprocessing import Process
     p = Process(target=process_JJ, args=(data, payload))
     p.start()
     p.join()
@@ -172,17 +170,15 @@ def payload(request):
 
 
 def process_JJ(data, payload):
-    repo_name = data['repository']['name']
-    branch = data['repository']['default_branch']
-    J = jenkins.get_server_instance()
 #    if event == 'push':
 #        clone_url = data['repository']['clone_url']
 #    if event == 'pull_request':
 #        clone_url = data['head']['repo']['clone_url']
 
     # FIXME build id is not sync
+    J = jenkins.get_server_instance()
     r = J[settings.JENKINS_JOB].invoke(build_params={'data': payload})
-    start = datetime.datetime.now()
+    start = timezone.now()
     while True:
         status = r.is_queued_or_running()
         print 'is running', status
@@ -191,9 +187,12 @@ def process_JJ(data, payload):
             build_id = r.get_build_number()
             break
     print 'build_id: ', build_id
+
+    branch = data['ref']
+    repo_name = data['repository']['full_name']
     repo_id = data['repository']['id']
     message = data['head_commit']['message']
-    commit = data['head_commit']['id'][:7]
+    commit = data['head_commit']['id']
     committer = data['head_commit']['committer']['name']
     timestamp = data['head_commit']['timestamp']
 
@@ -205,7 +204,7 @@ def process_JJ(data, payload):
     payload.build_job = settings.JENKINS_JOB
     payload.branch = branch
     payload.start = start
-    payload.end = datetime.datetime.now()
+    payload.end = timezone.now()
     payload.save()
 
     print '-'*80
@@ -223,18 +222,8 @@ def create_hook(request):
 
     access_token = request.session['access_token']
 
-    uri = '/user'
-    user_info = requests.get(urlparse.urljoin(API_ROOT, uri), params={'access_token': access_token})
-    print user_info.json()
-    user_name = user_info.json()['login']
-
     repo_id = request.GET['repo_id']
     repo_name = request.GET['repo']
-
-    uri = '/repositories/%s' % (repo_id)
-
-    repo = requests.get(urlparse.urljoin(API_ROOT, uri))
-    repo = repo.json()
 
     data = dict(name='web',
                 events=['push'],
@@ -242,7 +231,7 @@ def create_hook(request):
                 config=dict(url=urlparse.urljoin(SERVER, '/payload/'),
                     content_type='json')
                 )
-    uri = '/repos/%s/%s/hooks' % (user_name, repo_name)
+    uri = '/repos/%s/hooks' % (repo_name)
     hook = requests.post(urlparse.urljoin(API_ROOT, uri), data=json.dumps(data), params={'access_token': access_token})
     # FIXME Hook is already existed.
     print hook.status_code
@@ -269,20 +258,13 @@ def edit_hook(request):
 
     access_token = request.session['access_token']
 
-    uri = '/user'
-    user_info = requests.get(urlparse.urljoin(API_ROOT, uri), params={'access_token': access_token})
-    user_name = user_info.json()['login']
-
     repo_id = request.GET['repo_id']
     repo_name = request.GET['repo']
-    uri = '/repositories/%s' % (repo_id)
 
-    repo = requests.get(urlparse.urljoin(API_ROOT, uri))
-    repo = repo.json()
     obj = Repo.objects.get(repo_id=repo_id)
 
     data = dict(active=not obj.enable,)
-    uri = '/repos/%s/%s/hooks/%s' % (user_name, repo_name, request.GET['hook_id'])
+    uri = '/repos/%s/hooks/%s' % (repo_name, request.GET['hook_id'])
     hook = requests.patch(urlparse.urljoin(API_ROOT, uri), data=json.dumps(data), params={'access_token': access_token})
     hook = hook.json()
     print hook
@@ -300,11 +282,11 @@ def edit_hook(request):
 
 
 @login_required
-def repo(request, repo):
-    """repo page
+def repo(request, uname, repo):
+    """show last build console and build history
     """
-    # show last build console, build history
-    payloads = Payload.objects.filter(name=repo).order_by('-id')
+    name = '/'.join((uname, repo))
+    payloads = Payload.objects.filter(name=name).order_by('-id')
     current = payloads[0] if payloads else {}
     if current:
         J = jenkins.get_server_instance()
@@ -314,22 +296,24 @@ def repo(request, repo):
 
 
 @login_required
-def builds(request, repo):
+def builds(request, uname, repo):
     """show build history
     """
-    builds = Payload.objects.filter(name=repo).order_by('-id')
+    name = '/'.join((uname, repo))
+    builds = Payload.objects.filter(name=name).order_by('-id')
     for build in builds:
         build.message = build.message.strip().splitlines()[0]
     return render(request, 'core/repo.html', locals())
 
 
 @login_required
-def get_build(request, repo, build_id):
+def get_build(request, uname, repo, build_id):
     """get specific build information
     """
+    name = '/'.join((uname, repo))
     J = jenkins.get_server_instance()
     try:
-        current = Payload.objects.get(name=repo, build_id=build_id)
+        current = Payload.objects.get(name=name, build_id=build_id)
     except Payload.DoesNotExist:
         current = {}
     console = J[current.build_job].get_build(int(build_id)).get_console()
@@ -347,74 +331,6 @@ def badge(request, repo, branch):
         status = badge.status
     ref = {'FAILURE': ('failing', 'red'), 'SUCCESS': ('success', 'brightgreen'), 'UNKNOW': ('unkonw', 'lightgrey')}
     return HttpResponseRedirect(BADGE_URL % ref[status])
-
-
-def console(request, repo, build_id):
-    """get build console
-    """
-    status = {}
-
-    def realtime_console(t, build):
-        s = ''
-
-        building = build.is_running()
-        # get build console when job is finished
-        if not building:
-            status['status'] = build.get_status()
-            print 'res====:', status
-            yield t.render(Context({'console': build.get_console()}))
-
-        else:
-            # get build console when job is running
-            while building:
-                building = build.is_running()
-                console = build.get_console()
-                result = build.get_status()
-                print '-'*80
-                print console
-                news = console.strip(s)
-                print 'news'+'-'*80
-                print news
-                s = console
-                if news:
-                    yield t.render(Context({'console': news}))
-                print '-'*80
-
-            status['status'] = result
-
-
-    J = jenkins.get_server_instance()
-    build = J[settings.JENKINS_JOB].get_build(int(build_id))
-
-    print 'running :', build.is_running()
-    t = loader.get_template('core/build.html')
-
-    console = realtime_console(t, build)
-
-    payload = Payload.objects.get(repo=repo, build_id=build_id)
-    badge = Badge.objects.get_or_create(repo=repo, branch=payload.branch)
-
-    print 'status, ', status
-    if status.get('status'):
-        badge.status = status['status']
-        badge.save()
-   
-    return StreamingHttpResponse(console)
-
-
-t = loader.get_template('core/build.html')
-
-def gen_rendered():
-    yield t.render(Context({'console': "console********************************"}))
-    j = 0
-    for x in range(1,11):
-        yield t.render(Context({'console': (x-j)}))
-        j = x
-
-def stream_view(request):
-
-    response = StreamingHttpResponse(gen_rendered())
-    return response
 
 
 def get_repos(access_token):
@@ -435,3 +351,7 @@ def get_repos(access_token):
         except ObjectDoesNotExist:
             continue
     return repos
+
+
+def test(request):
+    return HttpResponse('ok')
