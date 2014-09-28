@@ -1,8 +1,8 @@
 muse
 ====
 
-.. image:: http://34be519a.ngrok.com/badge/muse/master
-    :target: http://34be519a.ngrok.com/auth
+.. image:: http://buildhub.ngrok.com/badge/muse/master/
+    :target: http://buildhub.ngrok.com/117111302/muse/
     
 About this library
 -------------------
