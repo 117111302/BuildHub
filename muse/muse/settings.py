@@ -25,6 +25,8 @@ DEBUG = True
 
 TEMPLATE_DEBUG = True
 
+LOGIN_URL = '/'
+
 ALLOWED_HOSTS = []
 
 # GitHub Client
