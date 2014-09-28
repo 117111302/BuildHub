@@ -1,16 +1,12 @@
-<html>
-    <head>
-    </head>
-    <body>
-	<p>
-	    Well, hello there!
-	</p>
-	<p>
-	    You're going to now talk to the GitHub API. Ready?
-	    <a href="https://github.com/login/oauth/authorize?scope={{scopes}}&client_id={{client_id}}">Click here</a> to begin!</a>
-        </p>
-	<p>
-	    If that link doesn't work, remember to provide your own <a href="/oauth/#web-application-flow">Client ID</a>!
-	</p>
-    </body>
-</html>
+{% extends "base.html" %}
+{% block content %}
+
+<div class="jumbotron">
+    <h2>Welcome to BuildHub!</h1>
+{% if not user.is_authenticated %}
+    <p>In order to view your repositories, please sign in.</p>
+    <p><a href="/signin" class="btn btn-primary btn-lg" role="button">Sign in with GitHub</a></p>
+{% endif %}
+</div>
+
+{% endblock %}

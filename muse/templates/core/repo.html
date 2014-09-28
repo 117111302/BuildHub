@@ -1,20 +1,86 @@
-<table border=1>
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h2>{{ name }}</h1>
+    </div>
+<ul class="nav nav-tabs" role="tablist" id='tabs'>
+  <li {% if current and not build_id  %}class="active"{% endif %}><a href="/{{ name }}">Current</a></li>
+  <li {% if builds %}class="active"{% endif %}><a href="/{{ name }}/builds/">Build History</a></li>
+  {% if current and build_id %}<li class="active"><a href="#">{{ current.id }}</a></li>{% endif %}
+</ul>
+
+<div class="tab-content">
+  <div class="tab-pane {% if current %}active{% endif %}" id="current">
+    <div>
+      <div class="left">
+      Commit message
+      </div>
+      <pre>{{ current.message }}</pre>
+      <div>Committer: {{ current.committer }}</div>
+      <div class="right">
+        Build start time: {{ current.start }}
+      </div>
+      <div class="right">
+        Build end time: {{ current.end }}
+      </div>
+      <div class="right">
+        Build console
+      </div>
+      <pre>
+        {{ console }}
+      </pre>
+    </div>
+  </div>
+  <div class="tab-pane {% if builds %}active{% endif %}" id="builds">
+    <table class="table table-striped">
 	<tr>
 		<td>
-			repo
+			Build
 		</td>
 		<td>
-			payload
+			Message
 		</td>
+		<td>
+			Commit
+		</td>
+		<td>
+			Committer
+		</td>
+		<td>
+			Duration
+		</td>
+		<td>
+			Finished
+		</td>
+
 	</tr>
-	{% for hook in hooks %}
+	{% for build in builds %}
 		<tr>
 			<td>
-				<a href="/{{hook.repo}}/builds/{{hook.build_id}}/">{{hook.repo}}</a>
+				<a href="/{{ name }}/builds/{{ build.build_id }}/">{{ build.id }}</a>
 			</td>
 			<td>
-				<pre>{{hook.pretty}}</pre>
+				{{ build.message }}
+			</td>
+			<td>
+				{{ build.commit }}
+			</td>
+
+			<td>
+				{{ build.committer }}
+			</td>
+			<td>
+				{{ build.end|timesince:build.start }}
+			</td>
+			<td>
+			        {{ build.end|timesince }} agao
 			</td>
 		</tr>
 	{% endfor %}
-</table>
+    </table>
+  </div>
+</div>
+
+</div>
+{% endblock %}
