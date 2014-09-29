@@ -282,11 +282,10 @@ def edit_hook(request):
 
 
 @login_required
-def repo(request, uname, repo):
+def repo(request, repo):
     """show last build console and build history
     """
-    name = '/'.join((uname, repo))
-    payloads = Payload.objects.filter(name=name).order_by('-id')
+    payloads = Payload.objects.filter(name=repo).order_by('-id')
     current = payloads[0] if payloads else {}
     if current:
         J = jenkins.get_server_instance()
@@ -296,24 +295,22 @@ def repo(request, uname, repo):
 
 
 @login_required
-def builds(request, uname, repo):
+def builds(request, repo):
     """show build history
     """
-    name = '/'.join((uname, repo))
-    builds = Payload.objects.filter(name=name).order_by('-id')
+    builds = Payload.objects.filter(name=repo).order_by('-id')
     for build in builds:
         build.message = build.message.strip().splitlines()[0]
     return render(request, 'core/repo.html', locals())
 
 
 @login_required
-def get_build(request, uname, repo, build_id):
+def get_build(request, repo, build_id):
     """get specific build information
     """
-    name = '/'.join((uname, repo))
     J = jenkins.get_server_instance()
     try:
-        current = Payload.objects.get(name=name, build_id=build_id)
+        current = Payload.objects.get(name=repo, build_id=build_id)
     except Payload.DoesNotExist:
         current = {}
     console = J[current.build_job].get_build(int(build_id)).get_console()
@@ -352,6 +349,3 @@ def get_repos(access_token):
             continue
     return repos
 
-
-def test(request):
-    return HttpResponse('ok')
