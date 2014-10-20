@@ -1,8 +1,8 @@
-muse
+BuildHub
 ====
 
-.. image:: http://buildhub.ngrok.com/badge/muse/master/
-    :target: http://buildhub.ngrok.com/117111302/muse/
+.. image:: http://buildhub.ngrok.com/badge/buildhub/master/
+    :target: http://buildhub.ngrok.com/117111302/BuildHub/
     
 About this library
 -------------------

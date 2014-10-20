@@ -1,5 +1,5 @@
 """
-Django settings for muse project.
+Django settings for buildhub project.
 
 For more information on this file, see
 https://docs.djangoproject.com/en/dev/topics/settings/
@@ -47,7 +47,7 @@ JENKINS_JOB = 'demo'
 #JENKINS_URL = 'http://tzjenkins-test.fi.intel.com/robot'
 #JENKINS_USER = 'root'
 #JENKINS_PASS = 'namtriv7'
-#JENKINS_JOB = 'muse_test'
+#JENKINS_JOB = 'buildhub_test'
 
 # Badge
 BADGE_URL = 'http://img.shields.io/badge/build-%s-%s.svg'
@@ -73,9 +73,9 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
 
-ROOT_URLCONF = 'muse.urls'
+ROOT_URLCONF = 'buildhub.urls'
 
-WSGI_APPLICATION = 'muse.wsgi.application'
+WSGI_APPLICATION = 'buildhub.wsgi.application'
 
 
 # Database
