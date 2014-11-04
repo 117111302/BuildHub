@@ -18,8 +18,9 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.conf import settings
 from django.shortcuts import render
 from django.utils import timezone
-from lib import jenkins
 from furl import furl
+from lib import jenkins
+from lib import keygen as ssh_keygen
 
 from .models import Payload
 from .models import Badge
@@ -72,6 +73,18 @@ def login_view(request):
 
     return render(request, 'core/login.html', {
         'form': form,
+    })
+
+
+@csrf_exempt
+def keygen(request):
+    """generate SSH key
+    """
+    SSH_addr = request.POST.get('addr')
+    print SSH_addr
+    key = ssh_keygen.generate()
+    return render(request, 'core/generate.html', {
+	'key': key,
     })
 
 
