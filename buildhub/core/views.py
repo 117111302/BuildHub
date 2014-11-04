@@ -1,25 +1,23 @@
 # -*- coding: utf-8 -*-
 
 import json
-import time
-import datetime
 import requests
 import urlparse
 from multiprocessing import Process
 
-from django.contrib.auth.models import User
-from django.shortcuts import render
-from django.conf import settings
-from django.http import HttpResponse
-from django.http import StreamingHttpResponse
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from django.template import loader, Context, Template
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import AuthenticationForm as authentication_form
+from django.contrib.auth.models import User
+from django.http import HttpResponseRedirect
+from django.http import HttpResponse
 from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ObjectDoesNotExist
+from django.conf import settings
+from django.shortcuts import render
 from django.utils import timezone
-from github import Github
 from lib import jenkins
 from furl import furl
 
@@ -36,17 +34,45 @@ REDIRECT_URI = settings.REDIRECT_URI
 BADGE_URL = settings.BADGE_URL
 
 
+@csrf_exempt
+def register(request):
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            new_user = form.save()
+            return HttpResponseRedirect("/")
+    else:
+        form = UserCreationForm()
+    return render(request, "core/register.html", {
+        'form': form,
+    })
+
+
 def logout_view(request):
     logout(request)
     return HttpResponseRedirect('/')
 
 
+@csrf_exempt
 def login_view(request):
     """login view
     """
-    content = {'client_id': CLIENT_ID, 'scopes': 'user:email,admin:repo_hook'}
-    # if user login or not?
-    return render(request, 'core/login.html', content)
+    redirect_to = request.POST.get('next', '/')
+
+    if request.method == "POST":
+        form = authentication_form(request, data=request.POST)
+        if form.is_valid():
+
+            # Okay, security check complete. Log the user in.
+            login(request, form.get_user())
+
+            return HttpResponseRedirect(redirect_to)
+    else:
+        form = authentication_form(request)
+
+    return render(request, 'core/login.html', {
+        'form': form,
+    })
 
 
 def auth(request):

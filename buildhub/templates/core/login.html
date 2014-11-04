@@ -5,7 +5,20 @@
     <h2>Welcome to BuildHub!</h1>
 {% if not user.is_authenticated %}
     <p>In order to view your repositories, please sign in.</p>
-    <p><a href="/signin" class="btn btn-primary btn-lg" role="button">Sign in with GitHub</a></p>
+  {% if form.errors %}
+    <p class="error">Sorry, that's not a valid username or password</p>
+  {% endif %}
+
+  <form action="/login/" method="post">
+    <label for="username">User name:</label>
+    <input type="text" name="username" value="" id="username">
+    <label for="password">Password:</label>
+    <input type="password" name="password" value="" id="password">
+
+    <input type="submit" value="login" />
+    <input type="hidden" name="next" value="{{ next|escape }}" />
+  </form>
+    <p>If you have no account, please <a href="/register">sign up.</p>
 {% endif %}
 </div>
 

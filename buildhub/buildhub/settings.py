@@ -26,6 +26,7 @@ DEBUG = True
 TEMPLATE_DEBUG = True
 
 LOGIN_URL = '/'
+LOGIN_REDIRECT_URL = '/'
 
 ALLOWED_HOSTS = []
 
@@ -38,11 +39,11 @@ OAUTH_URL = 'https://github.com/login/oauth/authorize'
 REDIRECT_URI = urlparse.urljoin(BACKEND_SERVER, '/auth/')
 
 # Jenkins
-JENKINS_URL = 'http://tzs.bj.intel.com/ci/'
+#JENKINS_URL = 'http://tzs.bj.intel.com/ci/'
+JENKINS_URL = 'http://nemo-precise.bj.intel.com:8080/'
 JENKINS_USER = 'junchunx'
 JENKINS_PASS = 'tizen2.0'
-JENKINS_JOB = 'demo'
-#JENKINS_JOB = 'Yocto-Builder'
+JENKINS_JOB = 'Yocto-Builder'
 
 #JENKINS_URL = 'http://tzjenkins-test.fi.intel.com/robot'
 #JENKINS_USER = 'root'
