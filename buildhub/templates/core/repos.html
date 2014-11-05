@@ -12,12 +12,9 @@
 	</tr>
 	{% for repo in repos %}
 	<tr>
+            {% if repo %}
 	    <td>
-                {% if repo.enable %}
-	        <a href="/{{repo.full_name}}/">{{repo.name}}</a>
-		{% else %}
-		{{ repo.name }}
-		{% endif %}
+	        <a href="/{{repo}}/">{{repo}}</a>
             </td>
 	    <td>
 		{% if repo.hook_id %}
@@ -36,6 +33,7 @@
 </a>
 		{% endif %}
 	    </td>
+            {% endif %}
 	</tr>
 	{% endfor %}
     </table>

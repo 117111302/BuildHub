@@ -4,3 +4,4 @@ requests==2.4.0
 jenkinsapi==0.2.25
 furl==0.3.95
 paramiko==1.15.1
+pygerrit==0.2.4

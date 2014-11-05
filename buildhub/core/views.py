@@ -21,6 +21,7 @@ from django.utils import timezone
 from furl import furl
 from lib import jenkins
 from lib import keygen as ssh_keygen
+from lib import gerrit
 
 from .models import Payload
 from .models import Badge
@@ -126,41 +127,12 @@ def signin(request):
 
 @login_required
 def repos(request):
-    """oauth callback
+    """get all projects list from gerrit
     """
-    # get user info, set cookie, save user into db
-    # if repo has hook?
-    access_token = request.session.get('access_token')
-    print 'access_token:', access_token
+    # List projects visible to caller
+    repos = gerrit.ls_projects()
 
-    headers = {'Accept': 'application/json'}
-
-    params = {'access_token': access_token, 'type': 'owner', 'sort': 'updated'}
-    # List repositories for the authenticated user.
-    repos = requests.get('https://api.github.com/user/repos', params=params, headers=headers)
-    repos = repos.json()
-
-    # List public and private organizations for the authenticated user.
-    orgs = requests.get('https://api.github.com/user/orgs', params=params, headers=headers)
-
-#    client = Github(access_token)
-#    user = client.get_user()
-    # List repositories for the authenticated user.
-#    repos = client.get_user().get_repos()
-    for repo in repos:
-        try:
-            repo_id = repo['id']
-            r = Repo.objects.get(repo_id=repo_id)
-            if r.repo_id == repo_id:
-#                setattr(repo, 'enable', r.enable)
-                repo['enable'] = r.enable
-                repo['hook_id'] = r.hook_id
-        except ObjectDoesNotExist:
-            continue
-    # List public and private organizations for the authenticated user.
-#    orgs = user.get_orgs()
-
-    content = {'repos': repos, 'orgs': orgs}
+    content = {'repos': repos}
     return render(request, 'core/repos.html', content)
 
 
