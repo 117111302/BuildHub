@@ -11,17 +11,22 @@
 
     <form action="/login/" method="post">
     <label for="username">User name:</label>
-    <input type="text" name="username" value="" id="username">
+    <input type="text" name="username" value="" id="username" />
     <label for="password">Password:</label>
     <input type="password" name="password" value="" id="password">
     <input type="submit" value="login" />
     <input type="hidden" name="next" value="{{ next|escape }}" />
     </form>
-    <p>If you have no account, please <a href="/register">sign up.</p>
+    <p>If you have no account, please <a href="/register">sign up.</a></p>
 {% else %}
     <form action="/keygen/" method="post">
-      <input type="text" name="addr" />
-      <input type="submit" value="Generate your key" />
+    <label for="addr">Gerrit host</label>
+    <input type="text" name="addr" />
+    <label for="addr">Gerrit username</label>
+    <input type="text" name="username" />
+    <label for="addr">Gerrit port</label>
+    <input type="text" name="port" value="29418"/>
+    <input type="submit" value="Generate your key" />
     </form>
 {% endif %}
 </div>

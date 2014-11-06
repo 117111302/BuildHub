@@ -1,5 +1,4 @@
-from paramiko import RSAKey
-from paramiko import DSSKey
+from paramiko import RSAKey, DSSKey
 
 
 default_values = {
@@ -14,7 +13,7 @@ key_dispatch_table = {
 }
 
 
-def generate(ktype='rsa', filename='buildhub.id_rsa', phrase=''):
+def generate(filename, ktype='rsa', phrase=''):
     """generating private key
     """
     pub_key = ''

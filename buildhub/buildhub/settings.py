@@ -30,6 +30,10 @@ LOGIN_REDIRECT_URL = '/'
 
 ALLOWED_HOSTS = []
 
+# SSH key path
+
+GERRIT_SSH_KEY_PATH = os.path.expanduser('~/.ssh')
+
 # GitHub Client
 GITHUB_API = 'https://api.github.com/'
 BACKEND_SERVER = 'http://buildhub.ngrok.com'
