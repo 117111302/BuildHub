@@ -20,10 +20,11 @@ from django.conf import settings
 from django.shortcuts import render
 from django.utils import timezone
 from furl import furl
+import pymongo
+
 from lib import jenkins
 from lib import keygen as ssh_keygen
 from lib import gerrit
-
 from .models import Payload
 from .models import Badge
 from .models import Repo
@@ -116,6 +117,25 @@ def repos(request):
 
     content = {'repos': repos}
     return render(request, 'core/repos.html', content)
+
+
+@login_required
+@csrf_exempt
+def groups(request):
+    """create a group for saving repos
+    """
+    username = request.user.username
+    client = pymongo.MongoClient("localhost", 27017)
+    db = client[settings.MONGODB_NAME]
+    coll = db[settings.MONGODB_COLLECTION]
+
+    if request.method == "POST":
+        name = request.POST.get('name')
+        coll.save({'name': name, 'username': username})
+
+    groups = coll.find()
+    content = {'groups': groups}
+    return render(request, 'core/groups.html', content)
 
 
 def create_gerrit_stream_event():

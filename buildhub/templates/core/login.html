@@ -22,11 +22,19 @@
     <form action="/keygen/" method="post">
     <label for="addr">Gerrit host</label>
     <input type="text" name="addr" />
-    <label for="addr">Gerrit username</label>
+    <label for="username">Gerrit username</label>
     <input type="text" name="username" />
-    <label for="addr">Gerrit port</label>
+    <label for="port">Gerrit port</label>
     <input type="text" name="port" value="29418"/>
     <input type="submit" value="Generate your key" />
+    </form>
+    </br>
+    <a href="/groups/">My Groups</a>
+    </br>
+    <form action="/groups/" method="post">
+    <label for="name">Group name</label>
+    <input type="text" name="name" />
+    <input type="submit" value="Create group" />
     </form>
 {% endif %}
 </div>

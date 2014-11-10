@@ -54,6 +54,13 @@ JENKINS_JOB = 'Yocto-Builder'
 #JENKINS_PASS = 'namtriv7'
 #JENKINS_JOB = 'buildhub_test'
 
+# Mongodb
+
+MONGODB_HOST = 'localhost'
+MONGODB_PORT = 27017
+MONGODB_NAME = 'buildhub'
+MONGODB_COLLECTION = 'groups'
+
 # Badge
 BADGE_URL = 'http://img.shields.io/badge/build-%s-%s.svg'
 

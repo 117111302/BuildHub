@@ -5,3 +5,4 @@ jenkinsapi==0.2.25
 furl==0.3.95
 paramiko==1.15.1
 pygerrit==0.2.4
+pymongo==2.7.2
