@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h2>Repos in this group</h2>
+    </div>
+
+    <form role="form" action="/del_repos/" method="post">
+    <button type="submit" class="btn btn-primary">Modify</button>
+    <input type="hidden" name="group" value="{{group}}">
+    <table class="table table-striped">
+        <tr>
+            <th>Name</th>
+            <th>Select</th>
+        </tr>
+        {% for repo in repos %}
+        <tr>
+            {% if repo %}
+            <td>
+                <a href="/{{repo}}/">{{repo}}</a>
+            </td>
+            <td>
+                <input type="checkbox" name="repos" value="{{repo}}" checked>
+            </td>
+            {% endif %}
+        </tr> 
+        {% endfor %}   
+    </table>
+    <button type="submit" class="btn btn-primary">Modify</button>
+    </form>
+
+    <br />
+</div>
+{% endblock %}

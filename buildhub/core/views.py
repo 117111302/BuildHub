@@ -2,6 +2,7 @@
 
 import os
 import json
+import base64
 import requests
 import urlparse
 from multiprocessing import Process
@@ -79,13 +80,10 @@ def index(request, user=None):
     """oauth callback
     """
     # get user info, set cookie, save user into db
-    # if repo has hook?
 
     repos = get_repos()
     # List public and private organizations for the authenticated user.
-    #orgs = user.get_orgs()
 
-    #content = {'repos': repos, 'orgs': orgs}
     content = {'repos': repos}
     return render(request, 'core/index.html', content)
 
@@ -95,25 +93,59 @@ def index(request, user=None):
 def keygen(request):
     """generate SSH key
     """
-    SSH_addr = request.POST.get('addr')
-    username = request.POST.get('username', 'buildhub')
-    port = request.POST.get('port')
-    key = ssh_keygen.generate(os.path.join(GERRIT_SSH_KEY_PATH, '%s.id_rsa' % username))
-    # TODO save into database
-    # TODO start process to create gerrit stream events
-    
+    SSH_addr = request.POST['addr']
+    SSH_user = request.POST['user']
+    port = int(request.POST['port'])
+    username = request.user.username
+    client = pymongo.MongoClient("localhost", 27017)
+    db = client[settings.MONGODB_NAME]
+    coll = db[settings.MONGODB_SSHKEY]
+
+    spec = {'addr': SSH_addr, 'username': username}
+    result = coll.find_one(spec, fields=['sshkey'])
+    if not result:
+        key_name = base64.b64encode('%s_%s' % (SSH_addr, SSH_user))
+        key = ssh_keygen.generate(os.path.join(GERRIT_SSH_KEY_PATH, '%s.id_rsa' % key_name))
+        coll.update(spec, {'$set': {'user': SSH_user, 'sshkey': key, 'port': port, 'key_name': key_name}}, True)
+    else:
+        key = result['sshkey']
+
     return render(request, 'core/generate.html', {
 	'key': key,
     })
 
 
 @login_required
-def repos(request):
-    """get all projects list from gerrit
+def keys(request):
+    """list all SSH key of user
     """
-    # List projects visible to caller
+    username = request.user.username
+    client = pymongo.MongoClient("localhost", 27017)
+    db = client[settings.MONGODB_NAME]
+    coll = db[settings.MONGODB_SSHKEY]
+
+    result = coll.find({'username': username})
+
+    return render(request, 'core/keys.html', {
+	'keys': result,
+    })
+
+
+@login_required
+def repos(request):
+    """List projects visible to caller
+    """
     # TODO get user's gerrit info from db, list projects of this gerrit
-    repos = gerrit.ls_projects()
+    username = request.user.username
+    SSH_addr = request.GET['addr']
+    client = pymongo.MongoClient("localhost", 27017)
+    db = client[settings.MONGODB_NAME]
+    coll = db[settings.MONGODB_SSHKEY]
+
+    spec = {'addr': SSH_addr, 'username': username}
+    result = coll.find_one(spec)
+    print result
+    repos = gerrit.ls_projects(**result)
 
     content = {'repos': repos}
     return render(request, 'core/repos.html', content)
@@ -122,20 +154,78 @@ def repos(request):
 @login_required
 @csrf_exempt
 def groups(request):
-    """create a group for saving repos
+    """create a group for saving reposi, return all group.
     """
     username = request.user.username
     client = pymongo.MongoClient("localhost", 27017)
     db = client[settings.MONGODB_NAME]
-    coll = db[settings.MONGODB_COLLECTION]
+    coll = db[settings.MONGODB_GROUPS]
 
     if request.method == "POST":
         name = request.POST.get('name')
-        coll.save({'name': name, 'username': username})
+        spec = {'name': group, 'username': username}
+        coll.update(spec, {'$set': {'name': name}}, True)
+    groups = coll.find({'username': username})
 
-    groups = coll.find()
     content = {'groups': groups}
     return render(request, 'core/groups.html', content)
+
+
+@login_required
+@csrf_exempt
+def group(request, name):
+    """list repos of group
+    """
+    username = request.user.username
+    client = pymongo.MongoClient("localhost", 27017)
+    db = client[settings.MONGODB_NAME]
+    coll = db[settings.MONGODB_REPOS]
+
+    repos = coll.find_one({'group': name, 'username': username}, fields=['repos'])
+    return render(request, 'core/group.html', repos)
+
+
+@login_required
+@csrf_exempt
+def add_repos(request):
+    """add repos to group
+    """
+    username = request.user.username
+    group = request.POST['group']
+    repos = request.POST.getlist('repos')
+    client = pymongo.MongoClient("localhost", 27017)
+    db = client[settings.MONGODB_NAME]
+    coll = db[settings.MONGODB_REPOS]
+
+    spec = {'group': group, 'username': username}
+    result = coll.find_one(spec, fields=['repos'])
+    if result:
+        repos.extend(result['repos'])
+    repos = list(set(repos))
+    coll.update(spec, {'$set': {'repos': repos}}, True)
+
+    content = {'repos': repos}
+    return render(request, 'core/group.html', content)
+
+
+@login_required
+@csrf_exempt
+def del_repos(request):
+    """remove repo from group
+    """
+    username = request.user.username
+    group = request.POST['group']
+    repos = request.POST.getlist('repos')
+    client = pymongo.MongoClient("localhost", 27017)
+    db = client[settings.MONGODB_NAME]
+    coll = db[settings.MONGODB_REPOS]
+
+    spec = {'group': group, 'username': username}
+    repos = list(set(repos))
+    coll.update(spec, {'$set': {'repos': repos}}, True)
+
+    content = {'repos': repos}
+    return render(request, 'core/group.html', content)
 
 
 def create_gerrit_stream_event():
@@ -150,7 +240,6 @@ def process_event():
     """process gerrit event
     """
     event = gerrit.stream_events()
-    print "gerrit event======>", event
     if event:
         payload(event)
 

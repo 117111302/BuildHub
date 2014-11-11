@@ -59,7 +59,9 @@ JENKINS_JOB = 'Yocto-Builder'
 MONGODB_HOST = 'localhost'
 MONGODB_PORT = 27017
 MONGODB_NAME = 'buildhub'
-MONGODB_COLLECTION = 'groups'
+MONGODB_GROUPS = 'groups'
+MONGODB_REPOS = 'repos'
+MONGODB_SSHKEY = 'sshkey'
 
 # Badge
 BADGE_URL = 'http://img.shields.io/badge/build-%s-%s.svg'
@@ -83,6 +85,16 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+)
+
+TEMPLATE_CONTEXT_PROCESSORS = (
+"django.contrib.auth.context_processors.auth",
+"django.core.context_processors.debug",
+"django.core.context_processors.i18n",
+"django.core.context_processors.media",
+"django.core.context_processors.static",
+"django.contrib.messages.context_processors.messages",
+"django.core.context_processors.request",
 )
 
 ROOT_URLCONF = 'buildhub.urls'

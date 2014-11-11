@@ -2,13 +2,17 @@
 {% block content %}
 <div class="container">
     <div class="page-header">
-        <h2>Repositories</h1>
+        <h2>Repositories</h2>
+        <h4>Select your repos, check button to add into your group.</h4>
     </div>
 
+    <form role="form" action="/add_repos/" method="post">
+    <button type="submit" class="btn btn-primary">Add to group</button>
+    <input type="hidden" name="group" value="{{request.GET.group}}">
     <table class="table table-striped">
         <tr>
 	    <th>Name</th>
-	    <th>Enabled</th>
+	    <th>Select</th>
 	</tr>
 	{% for repo in repos %}
 	<tr>
@@ -17,45 +21,13 @@
 	        <a href="/{{repo}}/">{{repo}}</a>
             </td>
 	    <td>
-		{% if repo.hook_id %}
-                {% if repo.enable %}
-                    <a href="/edit_hook/?repo_id={{repo.id}}&repo={{repo.full_name}}&hook_id={{repo.hook_id}}">
-<span class="label label-success">ON</span>
-</a>
-                {% else %}
-                    <a href="/edit_hook/?repo_id={{repo.id}}&repo={{repo.full_name}}&hook_id={{repo.hook_id}}">
-<span class="label label-default">OFF</span>
-</a>
-                {% endif %}
-		{% else %}
-                    <a href="/create_hook/?repo_id={{repo.id}}&repo={{repo.full_name}}">
-<span class="label label-default">OFF</span>
-</a>
-		{% endif %}
+                <input type="checkbox" name="repos" value="{{repo}}">
 	    </td>
             {% endif %}
 	</tr>
 	{% endfor %}
     </table>
-    <br />
-<!--
-	<p>Organizations<p/>
-	<table>
-           <tr>
-           <td>id</td>
-           <td>url</td>
-           </tr>
-           {% for org in orgs %}
-           <tr>
-               <td>
-                   {{org.login}}
-               </td>
-               <td>
-                   {{org.url}}
-               </td>
-           </tr>
-           {% endfor %}
-           </table>
--->
+    <button type="submit" class="btn btn-primary">Add to group</button>
+    </form>
 </div>
 {% endblock %}

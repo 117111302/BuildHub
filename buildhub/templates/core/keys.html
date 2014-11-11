@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h2>SSH KEYS</h2>
+    </div>
+
+    <table class="table table-striped">
+        <tr>
+	    <th>Host</th>
+	    <th>User</th>
+	    <th>Port</th>
+	    <th></th>
+	</tr>
+	{% for key in keys %}
+	<tr>
+	    <td>
+	        <a href="/keys/{{key.addr}}/">{{key.addr}}</a>
+            </td>
+	    <td>
+                {{key.user}}
+	    </td>
+	    <td>
+                {{key.port}}
+	    </td>
+	    <td>
+                <a href="/repos/?addr={{key.addr}}"><span class="label label-default">repos</span></a>
+	    </td>
+	</tr>
+	{% endfor %}
+    </table>
+    <br />
+</div>
+{% endblock %}

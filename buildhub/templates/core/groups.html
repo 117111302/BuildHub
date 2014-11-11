@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h2>Groups</h2>
+    </div>
+
+    <table class="table table-striped">
+        <tr>
+	    <th>Name</th>
+	    <th></th>
+	    <th></th>
+	</tr>
+	{% for group in groups %}
+	<tr>
+	    <td>
+	        <a href="/groups/{{group.name}}/">{{group.name}}</a>
+            </td>
+	    <td>
+                <a href="/repos/?group={{group.name}}"><span class="label label-default">Add repo</span></a>
+	    </td>
+	    <td>
+                <a href="/del_group/?group={{group.name}}"><span class="label label-default">DELETE</span></a>
+	    </td>
+	</tr>
+	{% endfor %}
+    </table>
+    <br />
+</div>
+{% endblock %}
