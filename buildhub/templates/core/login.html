@@ -2,34 +2,44 @@
 {% block content %}
 
 <div class="jumbotron">
-    <h2>Welcome to BuildHub!</h1>
-{% if not user.is_authenticated %}
+  <h2>Welcome to BuildHub!</h1>
+  {% if not user.is_authenticated %}
     <p>In order to view your repositories, please sign in.</p>
     {% if form.errors %}
       <p class="error">Sorry, that's not a valid username or password</p>
     {% endif %}
 
-    <form action="/login/" method="post">
-    <label for="username">User name:</label>
-    <input type="text" name="username" value="" id="username" />
-    <label for="password">Password:</label>
-    <input type="password" name="password" value="" id="password">
-    <input type="submit" value="login" />
+    <form role="form" action="/login/" method="post">
+      <div class="form-group">
+        <label for="username">User name</label>
+        <input type="text" class="form-control" name="username" value="" id="username" />
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" class="form-control" name="password" value="" id="password">
+      </div>
+    <button type="submit" class="btn btn-default">Sign in</button>
     <input type="hidden" name="next" value="{{ next|escape }}" />
     </form>
     <p>If you have no account, please <a href="/register">sign up.</a></p>
-{% else %}
-    <form action="/keygen/" method="post">
-    <label for="addr">Gerrit host</label>
-    <input type="text" name="addr" />
-    <label for="user">Gerrit username</label>
-    <input type="text" name="user" />
-    <label for="port">Gerrit port</label>
-    <input type="text" name="port" value="29418"/>
-    <input type="submit" value="Generate your key" />
+  {% else %}
+    <a href="/keys/">My hosts</a>
+    <form role="form" action="/keygen/" method="post">
+      <div class="form-group">
+        <label for="addr">Gerrit host</label>
+        <input type="text" class="form-control" name="addr" />
+      </div>
+      <div class="form-group">
+        <label for="user">Gerrit username</label>
+        <input type="text" class="form-control" name="user" />
+      </div>
+      <div class="form-group">
+        <label for="port">Gerrit port</label>
+        <input type="text" class="form-control" name="port" value="29418"/>
+      </div>
+    <button type="submit" class="btn btn-default">Generate your key</button>
     </form>
     </br>
-    <a href="/keys/">My hosts</a>
     </br>
     <a href="/groups/">My Groups</a>
     </br>
@@ -38,7 +48,7 @@
     <input type="text" name="name" />
     <input type="submit" value="Create group" />
     </form>
-{% endif %}
+  {% endif %}
 </div>
 
 {% endblock %}

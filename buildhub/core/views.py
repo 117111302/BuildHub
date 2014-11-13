@@ -116,6 +116,33 @@ def keygen(request):
 
 
 @login_required
+@csrf_exempt
+def test(request):
+    """test SSH connection
+    """
+    SSH_addr = request.POST['addr']
+    SSH_user = request.POST['user']
+    port = int(request.POST['port'])
+    username = request.user.username
+    client = pymongo.MongoClient("localhost", 27017)
+    db = client[settings.MONGODB_NAME]
+    coll = db[settings.MONGODB_SSHKEY]
+
+    spec = {'addr': SSH_addr, 'username': username}
+    result = coll.find_one(spec, fields=['sshkey'])
+    if not result:
+        key_name = base64.b64encode('%s_%s' % (SSH_addr, SSH_user))
+        key = ssh_keygen.generate(os.path.join(GERRIT_SSH_KEY_PATH, '%s.id_rsa' % key_name))
+        coll.update(spec, {'$set': {'user': SSH_user, 'sshkey': key, 'port': port, 'key_name': key_name}}, True)
+    else:
+        key = result['sshkey']
+
+    return render(request, 'core/generate.html', {
+	'key': key,
+    })
+
+
+@login_required
 def keys(request):
     """list all SSH key of user
     """
@@ -147,7 +174,10 @@ def repos(request):
     print result
     repos = gerrit.ls_projects(**result)
 
-    content = {'repos': repos}
+    coll = db[settings.MONGODB_GROUPS]
+    groups = coll.find({'username': username})
+
+    content = {'repos': repos, 'groups': groups}
     return render(request, 'core/repos.html', content)
 
 
@@ -216,6 +246,25 @@ def del_repos(request):
     username = request.user.username
     group = request.POST['group']
     repos = request.POST.getlist('repos')
+    client = pymongo.MongoClient("localhost", 27017)
+    db = client[settings.MONGODB_NAME]
+    coll = db[settings.MONGODB_REPOS]
+
+    spec = {'group': group, 'username': username}
+    repos = list(set(repos))
+    coll.update(spec, {'$set': {'repos': repos}}, True)
+
+    content = {'repos': repos}
+    return render(request, 'core/group.html', content)
+
+
+@login_required
+@csrf_exempt
+def del_host(request):
+    """remove host
+    """
+    username = request.user.username
+    repos = request.GET['host']
     client = pymongo.MongoClient("localhost", 27017)
     db = client[settings.MONGODB_NAME]
     coll = db[settings.MONGODB_REPOS]

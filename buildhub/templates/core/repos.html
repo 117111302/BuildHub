@@ -1,13 +1,21 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container">
-    <div class="page-header">
-        <h2>Repositories</h2>
-        <h4>Select your repos, check button to add into your group.</h4>
-    </div>
+  <div class="page-header">
+    <h2>Repositories</h2>
+    <h4>Select your repos, check button to add into your group.</h4>
+  </div>
 
-    <form role="form" action="/add_repos/" method="post">
+  <form role="form" action="/add_repos/" method="post">
+    <div class="col-xs-4">
+      <label for="sel1">Select one group</label>
+      <select class="form-control input-sm" name="group" id="sel1">
+      {% for group in groups %}
+        <option value="{{group.name}}">{{group.name}}</option>
+      {% endfor %}
+      </select>
     <button type="submit" class="btn btn-primary">Add to group</button>
+    </div>
     <input type="hidden" name="group" value="{{request.GET.group}}">
     <table class="table table-striped">
         <tr>
@@ -28,6 +36,6 @@
 	{% endfor %}
     </table>
     <button type="submit" class="btn btn-primary">Add to group</button>
-    </form>
+  </form>
 </div>
 {% endblock %}
