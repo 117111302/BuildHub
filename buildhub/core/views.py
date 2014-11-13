@@ -21,11 +21,11 @@ from django.conf import settings
 from django.shortcuts import render
 from django.utils import timezone
 from furl import furl
-import pymongo
 
 from lib import jenkins
 from lib import keygen as ssh_keygen
 from lib import gerrit
+from lib.mongodb import db
 from .models import Payload
 from .models import Badge
 from .models import Repo
@@ -58,6 +58,7 @@ def login_view(request):
     """login view
     """
     redirect_to = request.POST.get('next', '/')
+    print "login page redirect to" , redirect_to
 
     if request.method == "POST":
         form = authentication_form(request, data=request.POST)
@@ -77,14 +78,14 @@ def login_view(request):
 
 @login_required
 def index(request, user=None):
-    """oauth callback
+    """index page, show user groups
     """
-    # get user info, set cookie, save user into db
+    username = request.user.username
+    coll = db[settings.MONGODB_GROUPS]
 
-    repos = get_repos()
-    # List public and private organizations for the authenticated user.
+    groups = coll.find({'username': username})
 
-    content = {'repos': repos}
+    content = {'groups': groups}
     return render(request, 'core/index.html', content)
 
 
@@ -97,8 +98,6 @@ def keygen(request):
     SSH_user = request.POST['user']
     port = int(request.POST['port'])
     username = request.user.username
-    client = pymongo.MongoClient("localhost", 27017)
-    db = client[settings.MONGODB_NAME]
     coll = db[settings.MONGODB_SSHKEY]
 
     spec = {'addr': SSH_addr, 'username': username}
@@ -124,8 +123,6 @@ def test(request):
     SSH_user = request.POST['user']
     port = int(request.POST['port'])
     username = request.user.username
-    client = pymongo.MongoClient("localhost", 27017)
-    db = client[settings.MONGODB_NAME]
     coll = db[settings.MONGODB_SSHKEY]
 
     spec = {'addr': SSH_addr, 'username': username}
@@ -143,12 +140,24 @@ def test(request):
 
 
 @login_required
+def servers(request):
+    """list all servers of user
+    """
+    username = request.user.username
+    coll = db[settings.MONGODB_SSHKEY]
+
+    result = coll.find({'username': username})
+
+    return render(request, 'core/servers.html', {
+	'keys': result,
+    })
+
+
+@login_required
 def keys(request):
     """list all SSH key of user
     """
     username = request.user.username
-    client = pymongo.MongoClient("localhost", 27017)
-    db = client[settings.MONGODB_NAME]
     coll = db[settings.MONGODB_SSHKEY]
 
     result = coll.find({'username': username})
@@ -165,8 +174,6 @@ def repos(request):
     # TODO get user's gerrit info from db, list projects of this gerrit
     username = request.user.username
     SSH_addr = request.GET['addr']
-    client = pymongo.MongoClient("localhost", 27017)
-    db = client[settings.MONGODB_NAME]
     coll = db[settings.MONGODB_SSHKEY]
 
     spec = {'addr': SSH_addr, 'username': username}
@@ -183,12 +190,27 @@ def repos(request):
 
 @login_required
 @csrf_exempt
-def groups(request):
-    """create a group for saving reposi, return all group.
+def add_group(request):
+    """create a group for saving repos
     """
     username = request.user.username
-    client = pymongo.MongoClient("localhost", 27017)
-    db = client[settings.MONGODB_NAME]
+    coll = db[settings.MONGODB_GROUPS]
+
+    groups = coll.find({'username': username})
+    # TODO get all repos, if own repo in repos, make checkbox checked
+    repos = coll.find({'username': username})
+
+    content = {'groups': groups, 'repos': repos}
+    return render(request, 'core/add_group.html', content)
+
+
+
+@login_required
+@csrf_exempt
+def groups(request):
+    """create a group for saving repos, return all group.
+    """
+    username = request.user.username
     coll = db[settings.MONGODB_GROUPS]
 
     if request.method == "POST":
@@ -207,8 +229,6 @@ def group(request, name):
     """list repos of group
     """
     username = request.user.username
-    client = pymongo.MongoClient("localhost", 27017)
-    db = client[settings.MONGODB_NAME]
     coll = db[settings.MONGODB_REPOS]
 
     repos = coll.find_one({'group': name, 'username': username}, fields=['repos'])
@@ -223,8 +243,6 @@ def add_repos(request):
     username = request.user.username
     group = request.POST['group']
     repos = request.POST.getlist('repos')
-    client = pymongo.MongoClient("localhost", 27017)
-    db = client[settings.MONGODB_NAME]
     coll = db[settings.MONGODB_REPOS]
 
     spec = {'group': group, 'username': username}
@@ -246,8 +264,6 @@ def del_repos(request):
     username = request.user.username
     group = request.POST['group']
     repos = request.POST.getlist('repos')
-    client = pymongo.MongoClient("localhost", 27017)
-    db = client[settings.MONGODB_NAME]
     coll = db[settings.MONGODB_REPOS]
 
     spec = {'group': group, 'username': username}
@@ -265,8 +281,6 @@ def del_host(request):
     """
     username = request.user.username
     repos = request.GET['host']
-    client = pymongo.MongoClient("localhost", 27017)
-    db = client[settings.MONGODB_NAME]
     coll = db[settings.MONGODB_REPOS]
 
     spec = {'group': group, 'username': username}

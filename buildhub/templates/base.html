@@ -35,7 +35,9 @@
         <div class="navbar-collapse collapse">
           {% if user.is_authenticated %}
           <ul class="nav navbar-nav">
-            <li><a href="/keys/">Hosts</a></li>
+            <li><a href="/">Home</a></li>
+            <li><a href="/servers/">Gerrit Server</a></li>
+            <li><a href="/keys/">Keys</a></li>
           </ul>
           {% endif %}
           <ul class="nav navbar-nav navbar-right">
@@ -51,7 +53,7 @@
       </div>
     </div>
 
-    <div class="container" role="main">
+    <div class="page-container">
         {% block content %}{% endblock %}
     </div>
 
