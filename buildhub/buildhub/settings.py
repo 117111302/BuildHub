@@ -61,6 +61,7 @@ MONGODB_PORT = 27017
 MONGODB_NAME = 'buildhub'
 MONGODB_GROUPS = 'groups'
 MONGODB_REPOS = 'repos'
+MONGODB_USERREPOS = 'userrepos'
 MONGODB_SSHKEY = 'sshkey'
 
 # Badge

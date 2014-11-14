@@ -21,6 +21,7 @@ from django.conf import settings
 from django.shortcuts import render
 from django.utils import timezone
 from furl import furl
+import pymongo
 
 from lib import jenkins
 from lib import keygen as ssh_keygen
@@ -77,15 +78,22 @@ def login_view(request):
 
 
 @login_required
-def index(request, user=None):
+def index(request, name=None):
     """index page, show user groups
     """
     username = request.user.username
     coll = db[settings.MONGODB_GROUPS]
 
-    groups = coll.find({'username': username})
+    # query all groups sort by last opration time adding or building
+    groups = coll.find({'username': username}, sort=[('timestamp', pymongo.DESCENDING)])
+    if name:
+        group = coll.find_one({'name': name, 'username': username})
+    else:
+        group = groups[0] if groups else {}
 
-    content = {'groups': groups}
+    # TODO get build history
+    build = {}
+    content = {'groups': groups, 'group': group, 'build': build}
     return render(request, 'core/index.html', content)
 
 
@@ -195,14 +203,24 @@ def add_group(request):
     """
     username = request.user.username
     coll = db[settings.MONGODB_GROUPS]
+    name = request.GET.get('group','')
+    if request.method == 'POST':
+        name = request.POST['group']
+        config = request.POST['config']
+        repos = request.POST.getlist('repos', [])
+        timestamp = time.time()
+        spec = {'name': name, 'username': username}
+        coll.update(spec, {'$set': {'repos': repos, 'config': config, 'timestamp': timestamp}}, True)
+        return HttpResponse('Success')
 
-    groups = coll.find({'username': username})
-    # TODO get all repos, if own repo in repos, make checkbox checked
-    repos = coll.find({'username': username})
+    group = coll.find_one({'name': name, 'username': username})
 
-    content = {'groups': groups, 'repos': repos}
+    # get all repos
+    coll = db[settings.MONGODB_REPOS]
+    repos = coll.find()
+    # get user repos
+    content = {'group': group, 'repos': repos}
     return render(request, 'core/add_group.html', content)
-
 
 
 @login_required

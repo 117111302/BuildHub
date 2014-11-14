@@ -8,7 +8,7 @@
   <div class="row row-offcanvas row-offcanvas-left">
     <!-- sidebar -->
     <div class="col-xs-6 col-sm-3 sidebar-offcanvas" id="sidebar" role="navigation">
-      <a href="/add_group/" class="btn btn-default btn-sm active" role="button"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></a>
+      <div class="text-right"><a href="/add_group/" class="btn btn-default btn-sm" role="button"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></a></div>
       <hr>
       <ul class="nav list-group">
         {% for group in groups %}
@@ -21,8 +21,19 @@
 	
     <!-- main area -->
     <div class="col-xs-12 col-sm-9">
-      <p class="text-right"><a href="/del_group/?group={{group.name}}"><span class="label label-default">DELETE</span></a></p>
-      <h3>group{{group.name}}</h3>
+      <!-- Single button -->
+      <div class="text-right">
+      <div class=" btn-group">
+        <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+          <span class="glyphicon glyphicon-cog" aria-hidden="true"></span> <span class="caret"></span>
+        </button>
+        <ul class="dropdown-menu" role="menu">
+          <li><a href="/add_group/?group={{group.name}}">Edit group</a></li>
+          <li><a href="/del_group/?group={{group.name}}">Delete</a></li>
+        </ul>
+      </div>
+      </div>
+      <h3>{{group.name}}</h3>
       <div class="tabbable">
         <ul class="nav nav-tabs" role="tablist" id='tabs'>
           <li {% if current and not build_id  %}class="active"{% endif %}><a href="/{{ repo }}">Current</a></li>
