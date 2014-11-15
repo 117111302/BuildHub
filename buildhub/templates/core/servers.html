@@ -8,44 +8,32 @@
   <div class="row">
     <!--left-->
     <div class="col-md-3" id="leftCol">
+      <div class="text-right"><a href="/add_server/" class="btn btn-default btn-sm" role="button"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></a></div>
       <ul class="nav nav-stacked" id="sidebar">
-        <li><a href="#sec0">Section 0</a></li>
-        <li><a href="#sec1">Section 1</a></li>
-        <li><a href="#sec2">Section 2</a></li>
-        <li><a href="#sec3">Section 3</a></li>
-        <li><a href="#sec4">Section 4</a></li>
+        {% for server in servers %}
+        <li><a href="#sec{{forloop.counter}}">{{server.addr}}</a></li>
+	{% endfor %}
       </ul>
     </div><!--/left-->
   
     <!--right-->
     <div class="col-md-9">
-      <h2 id="sec0"></h2>
-    </div>
-
-    <table class="table table-striped">
-        <tr>
-	    <th>Host</th>
-	    <th>Username</th>
-	    <th>Port</th>
-	    <th></th>
-	</tr>
-	{% for server in servers %}
-	<tr>
-	    <td>
-	        <a href="/servers/{{server.addr}}/">{{server.addr}}</a>
-            </td>
-	    <td>
-                {{server.user}}
-	    </td>
-	    <td>
-                {{server.port}}
-	    </td>
-	    <td>
-                <a href="/repos/?addr={{server.addr}}"><span class="label label-default">repos</span></a>
-	    </td>
-	</tr>
-	{% endfor %}
-    </table>
-    <br />
+      {% for server in details %}
+      <h2 id="sec{{forloop.counter}}"></h2>
+      <dl class="dl-horizontal">
+        <dt>Addr</dt>
+	<dd>{{server.addr}}</dd>
+        <dt>User</dt>
+	<dd>{{server.user}}</dd>
+        <dt>Port</dt>
+	<dd>{{server.port}}</dd>
+        <dt>Key</dt>
+	<dd>{{server.key}}</dd>
+      </dl>
+      {% empty %}
+        You have no server, please add one.
+      {% endfor %}
+    </div><!--/right-->
+  </div>
 </div>
 {% endblock %}

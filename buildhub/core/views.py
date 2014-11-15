@@ -2,6 +2,7 @@
 
 import os
 import json
+import time
 import base64
 import requests
 import urlparse
@@ -14,7 +15,6 @@ from django.contrib.auth.forms import AuthenticationForm as authentication_form
 from django.contrib.auth.models import User
 from django.http import HttpResponseRedirect
 from django.http import HttpResponse
-from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ObjectDoesNotExist
 from django.conf import settings
@@ -89,7 +89,7 @@ def index(request, name=None):
     if name:
         group = coll.find_one({'name': name, 'username': username})
     else:
-        group = groups[0] if groups else {}
+        group = {} if not groups.count() else groups[0]
 
     # TODO get build history
     build = {}
@@ -99,23 +99,33 @@ def index(request, name=None):
 
 @login_required
 @csrf_exempt
-def keygen(request):
-    """generate SSH key
+def add_server(request):
+    """add server
     """
     SSH_addr = request.POST['addr']
     SSH_user = request.POST['user']
+    key = request.POST['key']
     port = int(request.POST['port'])
+    username = request.user.username
+    coll = db[settings.MONGODB_GERRIT_SERVER]
+
+    spec = {'addr': SSH_addr, 'username': username}
+    coll.update(spec, {'$set': {'user': SSH_user, 'key': key, 'port': port}}, True)
+
+    return HttpResponseRedirect('/servers')
+
+
+@login_required
+@csrf_exempt
+def keygen(request):
+    """generate SSH key
+    """
     username = request.user.username
     coll = db[settings.MONGODB_SSHKEY]
 
-    spec = {'addr': SSH_addr, 'username': username}
-    result = coll.find_one(spec, fields=['sshkey'])
-    if not result:
-        key_name = base64.b64encode('%s_%s' % (SSH_addr, SSH_user))
-        key = ssh_keygen.generate(os.path.join(GERRIT_SSH_KEY_PATH, '%s.id_rsa' % key_name))
-        coll.update(spec, {'$set': {'user': SSH_user, 'sshkey': key, 'port': port, 'key_name': key_name}}, True)
-    else:
-        key = result['sshkey']
+    spec = '%s_%s' % (username, time.time())
+    key = ssh_keygen.generate(os.path.join(GERRIT_SSH_KEY_PATH, '%s.id_rsa' % spec))
+    coll.insert({'username': username, 'spec': spec, 'key': key})
 
     return render(request, 'core/generate.html', {
 	'key': key,
@@ -134,13 +144,8 @@ def test(request):
     coll = db[settings.MONGODB_SSHKEY]
 
     spec = {'addr': SSH_addr, 'username': username}
-    result = coll.find_one(spec, fields=['sshkey'])
-    if not result:
-        key_name = base64.b64encode('%s_%s' % (SSH_addr, SSH_user))
-        key = ssh_keygen.generate(os.path.join(GERRIT_SSH_KEY_PATH, '%s.id_rsa' % key_name))
-        coll.update(spec, {'$set': {'user': SSH_user, 'sshkey': key, 'port': port, 'key_name': key_name}}, True)
-    else:
-        key = result['sshkey']
+    result = coll.find_one(spec, fields=['hey'])
+    # TODO call gerrit_version()
 
     return render(request, 'core/generate.html', {
 	'key': key,
@@ -152,13 +157,47 @@ def servers(request):
     """list all servers of user
     """
     username = request.user.username
-    coll = db[settings.MONGODB_SSHKEY]
+    coll = db[settings.MONGODB_GERRIT_SERVER]
 
     result = coll.find({'username': username})
 
     return render(request, 'core/servers.html', {
-	'keys': result,
+	'servers': result, 'details': result.clone()
     })
+
+
+@login_required
+@csrf_exempt
+def add_server(request):
+    """create a server
+    """
+    username = request.user.username
+    coll = db[settings.MONGODB_GERRIT_SERVER]
+    addr = request.GET.get('addr','')
+    if request.method == 'POST':
+        SSH_addr = request.POST['addr']
+        SSH_user = request.POST['user']
+	key = request.POST['key']
+	port = int(request.POST['port'])
+	username = request.user.username
+	coll = db[settings.MONGODB_GERRIT_SERVER]
+
+	spec = {'addr': SSH_addr, 'username': username}
+	coll.update(spec, {'$set': {'user': SSH_user, 'key': key, 'port': port}}, True)
+
+	return HttpResponseRedirect('/servers')
+
+    server = coll.find_one({'addr': addr, 'username': username})
+
+    # get all repos
+    coll = db[settings.MONGODB_REPOS]
+    repos = coll.find()
+    # get user repos
+    coll = db[settings.MONGODB_SSHKEY]
+
+    keys = coll.find({'username': username})
+    content = {'server': server, 'repos': repos, 'keys': keys}
+    return render(request, 'core/add_server.html', content)
 
 
 @login_required

@@ -62,6 +62,7 @@ MONGODB_NAME = 'buildhub'
 MONGODB_GROUPS = 'groups'
 MONGODB_REPOS = 'repos'
 MONGODB_USERREPOS = 'userrepos'
+MONGODB_GERRIT_SERVER = 'gerrit_server'
 MONGODB_SSHKEY = 'sshkey'
 
 # Badge
