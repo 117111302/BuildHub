@@ -38,7 +38,12 @@
     </div>
     <div class="form-group">
       <div class="col-sm-offset-2 col-sm-10">
-        <button type="submit" class="btn btn-primary">Submit</button>
+        {% if message %}
+        <p><strong>Success, {{message}}</strong></p>
+        <button type="submit" name='submit' class="btn btn-primary">Submit</button>
+        {% else %}
+        <button type="submit" name='test' value="test" class="btn btn-primary">Test server connection</button>
+        {% endif %}
       </div>
     </div>
   </form>

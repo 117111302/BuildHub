@@ -99,24 +99,6 @@ def index(request, name=None):
 
 @login_required
 @csrf_exempt
-def add_server(request):
-    """add server
-    """
-    SSH_addr = request.POST['addr']
-    SSH_user = request.POST['user']
-    key = request.POST['key']
-    port = int(request.POST['port'])
-    username = request.user.username
-    coll = db[settings.MONGODB_GERRIT_SERVER]
-
-    spec = {'addr': SSH_addr, 'username': username}
-    coll.update(spec, {'$set': {'user': SSH_user, 'key': key, 'port': port}}, True)
-
-    return HttpResponseRedirect('/servers')
-
-
-@login_required
-@csrf_exempt
 def keygen(request):
     """generate SSH key
     """
@@ -140,16 +122,9 @@ def test(request):
     SSH_addr = request.POST['addr']
     SSH_user = request.POST['user']
     port = int(request.POST['port'])
-    username = request.user.username
-    coll = db[settings.MONGODB_SSHKEY]
-
-    spec = {'addr': SSH_addr, 'username': username}
-    result = coll.find_one(spec, fields=['hey'])
-    # TODO call gerrit_version()
-
-    return render(request, 'core/generate.html', {
-	'key': key,
-    })
+    key_name = request.POST['key']
+    print request.POST.dict()
+    return gerrit.gerrit_version(**request.POST.dict())
 
 
 @login_required
@@ -173,19 +148,23 @@ def add_server(request):
     """
     username = request.user.username
     coll = db[settings.MONGODB_GERRIT_SERVER]
-    addr = request.GET.get('addr','')
+    addr = request.REQUEST.get('addr','')
+    message = ''
     if request.method == 'POST':
-        SSH_addr = request.POST['addr']
-        SSH_user = request.POST['user']
-	key = request.POST['key']
-	port = int(request.POST['port'])
-	username = request.user.username
-	coll = db[settings.MONGODB_GERRIT_SERVER]
+        if request.POST.get('test'):
+            message = test(request)
+        else:
+            SSH_addr = request.POST['addr']
+            SSH_user = request.POST['user']
+            key = request.POST['key']
+            port = int(request.POST['port'])
+	    username = request.user.username
+	    coll = db[settings.MONGODB_GERRIT_SERVER]
 
-	spec = {'addr': SSH_addr, 'username': username}
-	coll.update(spec, {'$set': {'user': SSH_user, 'key': key, 'port': port}}, True)
+	    spec = {'addr': SSH_addr, 'username': username}
+	    coll.update(spec, {'$set': {'user': SSH_user, 'key': key, 'port': port}}, True)
 
-	return HttpResponseRedirect('/servers')
+	    return HttpResponseRedirect('/servers')
 
     server = coll.find_one({'addr': addr, 'username': username})
 
@@ -196,7 +175,7 @@ def add_server(request):
     coll = db[settings.MONGODB_SSHKEY]
 
     keys = coll.find({'username': username})
-    content = {'server': server, 'repos': repos, 'keys': keys}
+    content = {'server': server, 'repos': repos, 'keys': keys, 'message': message}
     return render(request, 'core/add_server.html', content)
 
 
@@ -225,7 +204,6 @@ def repos(request):
 
     spec = {'addr': SSH_addr, 'username': username}
     result = coll.find_one(spec)
-    print result
     repos = gerrit.ls_projects(**result)
 
     coll = db[settings.MONGODB_GROUPS]
@@ -333,19 +311,16 @@ def del_repos(request):
 
 @login_required
 @csrf_exempt
-def del_host(request):
-    """remove host
+def del_server(request):
+    """remove server
     """
     username = request.user.username
-    repos = request.GET['host']
+    repos = request.GET['addr']
     coll = db[settings.MONGODB_REPOS]
 
     spec = {'group': group, 'username': username}
-    repos = list(set(repos))
-    coll.update(spec, {'$set': {'repos': repos}}, True)
 
-    content = {'repos': repos}
-    return render(request, 'core/group.html', content)
+    return render(request, 'core/servers.html', content)
 
 
 def create_gerrit_stream_event():
