@@ -2,4 +2,4 @@ django==1.10.6
 MySQL-python==1.2.5
 requests==2.13.0
 jenkinsapi==0.3.3
-furl==0.5.7
+furl==1.0.0
