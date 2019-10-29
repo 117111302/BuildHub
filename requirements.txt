@@ -1,4 +1,4 @@
-django==1.6.1
+django==1.11.23
 MySQL-python==1.2.5
 requests==2.4.0
 jenkinsapi==0.2.25
